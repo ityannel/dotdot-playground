@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PopPop Terminal</title>
+    <title>PopPop Playground</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
@@ -285,79 +285,171 @@
         }
 
     </style>
+<link rel="stylesheet" href="playground.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></script>
 <script src="samples.js"></script>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js"></script>
-<script>mermaid.initialize({startOnLoad: false, theme: 'default'});</script>
 </head>
 <body>
-    <header class="neumorphic-panel">
-        <div class="logo" style="display: flex; align-items: center; gap: 10px;">
-            <img src="favicon.png" alt="PopPop Icon" style="height: 28px; width: 28px; object-fit: contain;">
-            <span>root@poppop:~#</span>
+    <header class="app-header">
+        <div class="brand">
+            <span class="brand-mark">
+                <img src="favicon.png" alt="">
+            </span>
+            <span class="brand-copy">
+                <span class="brand-name">PopPop</span>
+                <span class="brand-divider" aria-hidden="true"></span>
+                <span class="brand-product">Playground</span>
+            </span>
         </div>
         <div class="header-actions">
-            <select id="sample-select">
-                <option value="hello">hello.pop</option>
-                <option value="basic">basics.pop</option>
-                <option value="pipeline">pipeline.pop</option>
-                <option value="check">check.pop</option>
-                <option value="map_filter">map_filter.pop</option>
-                <option value="reduce">reduce.pop</option>
-                <option value="fork">fork.pop</option>
-                <option value="customfunc">function.pop</option>
-                <option value="interactive">interactive.pop</option>
-                <option value="empty">empty.pop</option>
-            </select>
-            <button class="neumorphic-button clear-btn" id="clear-btn">[ CLEAR ]</button>
-            <span class="shortcut-hint">^Enter = Run</span>
-            <button class="neumorphic-button run-btn" id="run-btn">[ RUN ]</button>
+            <label class="sample-field">
+                <select id="sample-select" aria-label="サンプルコード"></select>
+            </label>
+            <button class="neumorphic-button clear-btn" id="clear-btn" type="button">
+                <span class="button-icon" aria-hidden="true">↺</span>
+                <span class="button-label">リセット</span>
+            </button>
+            <span class="shortcut-hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd></span>
+            <button class="neumorphic-button run-btn" id="run-btn" type="button">
+                <span class="button-icon" aria-hidden="true">▶</span>
+                <span class="button-label">実行</span>
+            </button>
         </div>
     </header>
 
     <div class="main-container">
-        <div class="panel neumorphic-panel">
-            <div class="panel-header">~/editor.pop</div>
+        <section class="panel" aria-label="コードエディタ">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="panel-title-dot" aria-hidden="true"></span>
+                    <span class="file-name" id="active-file-name">main.pop</span>
+                </div>
+                <span class="file-type">POPPOP</span>
+            </div>
             <div class="editor-wrap">
                 <div id="code-editor"></div>
             </div>
-        </div>
+        </section>
 
-        <div class="panel neumorphic-panel">
-            <div class="panel-header">
-                <button class="tab-btn active" id="tab-console">stdout</button>
-                <button class="tab-btn" id="tab-flow">dataflow_viz</button>
+        <section class="panel" aria-label="実行結果">
+            <div class="panel-header result-header">
+                <div class="result-tabs" role="tablist" aria-label="結果表示">
+                    <button class="tab-btn active" id="tab-console" type="button" role="tab" aria-selected="true">出力</button>
+                    <button class="tab-btn" id="tab-flow" type="button" role="tab" aria-selected="false">データフロー</button>
+                </div>
             </div>
             
-            <div class="console" id="console-view">
-                <div id="loading" class="loading">Executing...</div>
-                <div id="output" class="console-output console-welcome">Ready.</div>
+            <div class="console" id="console-view" role="tabpanel" aria-labelledby="tab-console">
+                <div id="loading" class="loading">PopPop を実行しています</div>
+                <div id="output" class="console-output console-welcome">実行の準備ができました。</div>
                 <div id="error" class="console-error" style="display: none;"></div>
             </div>
             
-            <div class="flow-view" id="flow-view">
-                <div id="flow-content" style="color:#666;">Run code to see the data flow...</div>
+            <div class="flow-view" id="flow-view" role="tabpanel" aria-labelledby="tab-flow">
+                <div id="flow-content" class="flow-empty">
+                    <div class="flow-empty-card">
+                        <div class="flow-empty-icon" aria-hidden="true">⇣</div>
+                        <div>コードを実行すると、選択した一本の流れを上から下へ表示します。</div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
     </div>
 
     <div class="status-bar">
-        <span>NORMAL</span>
-        <span id="line-info">Ln 1, Col 1</span>
+        <span class="status-left">
+            <span class="runtime-state" id="runtime-status">ランタイムを準備中</span>
+            <span>PopPop 1.0</span>
+        </span>
+        <span class="status-right">
+            <span>UTF-8</span>
+            <span id="line-info">L 1, C 1</span>
+        </span>
     </div>
 
     <script>
 
-        // ── Ace Editor Initialization ──
+        // ── PopPop Editor ──
+        ace.define("ace/theme/poppop", ["require", "exports", "module", "ace/lib/dom"], function(require, exports) {
+            exports.isDark = true;
+            exports.cssClass = "ace-poppop";
+            exports.cssText = `
+                .ace-poppop .ace_gutter { background:#0b1119; color:#526579; }
+                .ace-poppop { background:#0d131c; color:#dbe7f3; }
+                .ace-poppop .ace_print-margin { width:1px; background:#1c2a39; }
+                .ace-poppop .ace_cursor { color:#ffb703; }
+                .ace-poppop .ace_marker-layer .ace_selection { background:rgba(77,163,255,.2); }
+                .ace-poppop .ace_marker-layer .ace_active-line { background:rgba(77,163,255,.06); }
+                .ace-poppop .ace_comment { color:#5f8d69; font-style:italic; }
+                .ace-poppop .ace_string { color:#ff8f70; }
+                .ace-poppop .ace_constant.ace_numeric,
+                .ace-poppop .ace_constant.ace_language { color:#ffd166; }
+                .ace-poppop .ace_keyword { color:#c27aff; }
+                .ace-poppop .ace_support.ace_function { color:#ff9f43; }
+                .ace-poppop .ace_variable { color:#4da3ff; }
+                .ace-poppop .ace_variable.ace_language { color:#35d0ba; }
+                .ace-poppop .ace_keyword.ace_operator { color:#91a2b7; }
+                .ace-poppop .ace_paren { color:#c9d4e1; }
+            `;
+            require("ace/lib/dom").importCssString(exports.cssText, exports.cssClass);
+        });
+
+        ace.define("ace/mode/poppop_highlight_rules", [
+            "require", "exports", "module", "ace/lib/oop", "ace/mode/text_highlight_rules"
+        ], function(require, exports) {
+            const oop = require("ace/lib/oop");
+            const TextHighlightRules = require("ace/mode/text_highlight_rules").TextHighlightRules;
+            const PopPopHighlightRules = function() {
+                this.$rules = {
+                    start: [
+                        { token: "comment", regex: "\\/\\/.*$" },
+                        { token: "string", regex: "\\$?\\\"(?:\\\\.|[^\\\"\\\\])*\\\"" },
+                        { token: "string", regex: "\\$?'(?:\\\\.|[^'\\\\])*'" },
+                        { token: "constant.numeric", regex: "\\b(?:\\d+(?:\\.\\d+)?)\\b" },
+                        { token: "constant.language", regex: "\\b(?:true|false|null)\\b" },
+                        { token: "keyword", regex: "\\b(?:check|is|else|must|be|catch|return|break)\\b" },
+                        { token: "support.function", regex: "\\b(?:Map|Filter|Reduce|Update|Drop|Display|Uppercase|Lowercase|Num|Int|Str|Bool|Range|Sort|Group|Flatten|Split|Join|Count|Take|Input|Debug|Throw|Array|Pack|Fork)\\b" },
+                        { token: "variable.language", regex: "@(?:[A-Za-z_][\\w]*|)" },
+                        { token: "variable", regex: "::[A-Za-z_][\\w]*|\\b[A-Za-z_][\\w]*\\b" },
+                        { token: "keyword.operator", regex: ">>|>~>|>\\?>|>!>|>\\+>|\\.\\.|[+\\-*\\/%&|=!<>]+" },
+                        { token: "paren", regex: "[\\[\\]{}()]" }
+                    ]
+                };
+                this.normalizeRules();
+            };
+            oop.inherits(PopPopHighlightRules, TextHighlightRules);
+            exports.PopPopHighlightRules = PopPopHighlightRules;
+        });
+
+        ace.define("ace/mode/poppop", [
+            "require", "exports", "module", "ace/lib/oop", "ace/mode/text", "ace/mode/poppop_highlight_rules"
+        ], function(require, exports) {
+            const oop = require("ace/lib/oop");
+            const TextMode = require("ace/mode/text").Mode;
+            const PopPopHighlightRules = require("ace/mode/poppop_highlight_rules").PopPopHighlightRules;
+            const Mode = function() {
+                this.HighlightRules = PopPopHighlightRules;
+                this.lineCommentStart = "//";
+                this.$id = "ace/mode/poppop";
+            };
+            oop.inherits(Mode, TextMode);
+            exports.Mode = Mode;
+        });
+
         const editor = ace.edit("code-editor");
-        editor.setTheme("ace/theme/tomorrow");
-        editor.session.setMode("ace/mode/python"); // Close enough for PopPop
+        editor.setTheme("ace/theme/poppop");
+        editor.session.setMode("ace/mode/poppop");
         editor.setOptions({
-            fontSize: "15px",
+            fontSize: "14px",
             fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace",
             showPrintMargin: false,
-            wrap: true
+            wrap: true,
+            tabSize: 4,
+            useSoftTabs: true,
+            showFoldWidgets: true,
+            displayIndentGuides: true,
+            enableBasicAutocompletion: true
         });
 
         // Ensure character measurements match after webfont finishes loading
@@ -382,6 +474,7 @@
             const sample = SAMPLES[e.target.value];
             if (sample) {
                 editor.setValue(sample.code, -1);
+                document.getElementById('active-file-name').textContent = sample.name || 'main.pop';
                 editor.resize(true);
                 editor.renderer.updateFull();
             }
@@ -389,12 +482,20 @@
 
         if (SAMPLES['hello']) {
             editor.setValue(SAMPLES['hello'].code, -1);
+            document.getElementById('active-file-name').textContent = SAMPLES['hello'].name || 'main.pop';
         }
 
         const lineInfo = document.getElementById('line-info');
         editor.session.selection.on('changeCursor', function() {
             const pos = editor.getCursorPosition();
-            lineInfo.textContent = `Ln ${pos.row + 1}, Col ${pos.column + 1}`;
+            lineInfo.textContent = `L ${pos.row + 1}, C ${pos.column + 1}`;
+            syncPipelineToCursor(pos.row + 1);
+        });
+
+        editor.session.on('change', function() {
+            if (typeof runtimeStatus !== 'undefined' && runtimeStatus.classList.contains('ready')) {
+                setRuntimeStatus('ready', '変更あり・未実行');
+            }
         });
 
         editor.commands.addCommand({
@@ -412,10 +513,14 @@
 
         tabConsole.onclick = () => {
             tabConsole.classList.add('active'); tabFlow.classList.remove('active');
-            viewConsole.style.display = 'block'; viewFlow.style.display = 'none';
+            tabConsole.setAttribute('aria-selected', 'true');
+            tabFlow.setAttribute('aria-selected', 'false');
+            viewConsole.style.display = 'flex'; viewFlow.style.display = 'none';
         };
         tabFlow.onclick = () => {
             tabFlow.classList.add('active'); tabConsole.classList.remove('active');
+            tabFlow.setAttribute('aria-selected', 'true');
+            tabConsole.setAttribute('aria-selected', 'false');
             viewFlow.style.display = 'block'; viewConsole.style.display = 'none';
         };
 
@@ -618,6 +723,316 @@
             }
         }
 
+        // ── Rebuilt single-pipeline flow view ──
+        let visiblePipelines = [];
+        let activePipelineIndex = 0;
+
+        function literalType(value) {
+            if (value === null) return "Null";
+            if (Array.isArray(value)) return "List";
+            if (typeof value === "string") return "Str";
+            if (typeof value === "number") return "Num";
+            if (typeof value === "boolean") return "Bool";
+            if (typeof value === "object") return "Object";
+            return "Value";
+        }
+
+        function compactValue(value, max = 52) {
+            let text;
+            if (typeof value === "string") text = `"${value}"`;
+            else {
+                try { text = JSON.stringify(value); }
+                catch (_) { text = String(value); }
+            }
+            if (text === undefined) text = String(value);
+            return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+        }
+
+        function nodeText(node) {
+            if (!node || typeof node !== "object") return compactValue(node);
+            switch (node.type) {
+                case "LiteralNode":
+                    return `${compactValue(node.value)} (${literalType(node.value)})`;
+                case "DictNode":
+                    return `{ ${node.keys.join(", ")} } (Object)`;
+                case "VariableNode":
+                    return node.name;
+                case "ImplicitVariableNode":
+                    return node.name ? `@${node.name}` : "@";
+                case "FunctionCallNode":
+                    return node.name;
+                case "BindNode":
+                    return nodeText(node.target);
+                case "DestructuringBindNode":
+                    return `(${node.targets.join(", ")})`;
+                case "IndexAccessNode": {
+                    const index = node.index?.type === "LiteralNode" ? node.index.value : nodeText(node.index);
+                    return `${nodeText(node.target)}::${index}`;
+                }
+                case "BundleNode":
+                    return `(${(node.items || []).map(nodeText).join(", ")})`;
+                case "ExpressionNode":
+                    return node.operator;
+                case "MustBeNode":
+                    return `must be ${node.type_name}`;
+                case "StreamBlockNode":
+                    return `${node.stream_type}${node.var_names?.length ? `(${node.var_names.join(", ")})` : ""}`;
+                case "CheckBlock":
+                    return "check";
+                case "CatchBlock":
+                    return node.var_name ? `Catch(${node.var_name})` : "Catch";
+                case "ForkBlock":
+                    return "Fork";
+                case "LoopBlock":
+                    return "Loop";
+                case "JoinNode":
+                    return node.mode === "pack" ? "Pack" : "Join";
+                case "ReturnNode":
+                    return "Return";
+                case "BreakNode":
+                    return "Break";
+                case "InterpolatedStringNode":
+                    return "$\"…\" (Str)";
+                default:
+                    return node.type?.replace(/Node$/, "") || "Value";
+            }
+        }
+
+        function nodeMeta(node) {
+            if (!node || typeof node !== "object") {
+                return { kind: "literal", kindLabel: "値", detail: "リテラル" };
+            }
+            const line = Number.isFinite(node.line) ? `L ${node.line}` : "";
+            switch (node.type) {
+                case "LiteralNode":
+                    return { kind: typeof node.value === "object" && node.value !== null ? "object" : "literal", kindLabel: "値", detail: `${literalType(node.value)}${line ? ` · ${line}` : ""}` };
+                case "DictNode":
+                case "BundleNode":
+                    return { kind: "object", kindLabel: "オブジェクト", detail: `データ${line ? ` · ${line}` : ""}` };
+                case "VariableNode":
+                case "ImplicitVariableNode":
+                case "BindNode":
+                case "DestructuringBindNode":
+                case "IndexAccessNode":
+                    return { kind: "variable", kindLabel: "変数", detail: `参照・代入${line ? ` · ${line}` : ""}` };
+                case "FunctionCallNode":
+                case "StreamBlockNode":
+                case "CatchBlock":
+                case "ForkBlock":
+                case "LoopBlock":
+                    return { kind: "function", kindLabel: "関数", detail: `処理${line ? ` · ${line}` : ""}` };
+                case "CheckBlock":
+                case "MustBeNode":
+                case "ExpressionNode":
+                case "JoinNode":
+                case "ReturnNode":
+                case "BreakNode":
+                    return { kind: "system", kindLabel: "システム", detail: `制御${line ? ` · ${line}` : ""}` };
+                default:
+                    return { kind: "object", kindLabel: "データ", detail: line };
+            }
+        }
+
+        function createFlowNode(node, labelOverride, detailOverride) {
+            const meta = nodeMeta(node);
+            const element = document.createElement("div");
+            element.className = `flow-node ${meta.kind}`;
+
+            const main = document.createElement("div");
+            main.className = "flow-node-main";
+
+            const label = document.createElement("div");
+            label.className = "flow-node-label";
+            label.textContent = labelOverride || nodeText(node);
+
+            const detail = document.createElement("div");
+            detail.className = "flow-node-detail";
+            detail.textContent = detailOverride || meta.detail;
+
+            const kind = document.createElement("span");
+            kind.className = "flow-node-kind";
+            kind.textContent = meta.kindLabel;
+
+            main.append(label, detail);
+            element.append(main, kind);
+            return element;
+        }
+
+        function createArrow(operator) {
+            const arrow = document.createElement("div");
+            arrow.className = "flow-arrow";
+            if (operator) arrow.setAttribute("aria-label", operator);
+            return arrow;
+        }
+
+        function pipelineNodes(pipeline) {
+            return Array.isArray(pipeline?.nodes) ? pipeline.nodes : [];
+        }
+
+        function createPipelineFlow(pipeline, nested = false) {
+            const canvas = document.createElement("div");
+            canvas.className = nested ? "flow-group-body" : "flow-canvas";
+            const nodes = pipelineNodes(pipeline);
+
+            nodes.forEach((node, index) => {
+                const step = document.createElement("div");
+                step.className = "flow-step";
+
+                if (node?.type === "StreamBlockNode") {
+                    const group = document.createElement("div");
+                    group.className = "flow-group";
+
+                    const title = document.createElement("div");
+                    title.className = "flow-group-title";
+                    const titleName = document.createElement("span");
+                    titleName.textContent = nodeText(node);
+                    const titleType = document.createElement("span");
+                    titleType.textContent = "FUNCTION";
+                    title.append(titleName, titleType);
+
+                    group.append(title);
+                    const inner = node.block?.pipelines?.[0];
+                    if (inner) {
+                        group.append(createPipelineFlow(inner, true));
+                    } else {
+                        group.append(createFlowNode(node));
+                    }
+                    step.append(group);
+                } else if (node?.type === "CheckBlock") {
+                    step.append(createFlowNode(node));
+                    const branches = Array.isArray(node.branches) ? node.branches : [];
+                    const group = document.createElement("div");
+                    group.className = "flow-group";
+                    const title = document.createElement("div");
+                    title.className = "flow-group-title";
+                    title.textContent = "BRANCH";
+                    group.append(title);
+                    branches.forEach((branch, branchIndex) => {
+                        const condition = branch.condition ? `is ${nodeText(branch.condition)}` : "else";
+                        group.append(createFlowNode(
+                            { type: "CheckBlock", line: branch.line },
+                            condition,
+                            `分岐 ${branchIndex + 1}`
+                        ));
+                        if (branch.block?.pipelines?.[0]) {
+                            group.append(createPipelineFlow(branch.block.pipelines[0], true));
+                        }
+                    });
+                    step.append(createArrow("branch"), group);
+                } else {
+                    step.append(createFlowNode(node));
+                }
+
+                if (index < nodes.length - 1) {
+                    step.append(createArrow(pipeline.ops?.[index] || ">>"));
+                }
+                canvas.append(step);
+            });
+
+            if (!nodes.length) {
+                canvas.append(createFlowNode(null, "空のパイプライン", "処理はありません"));
+            }
+            return canvas;
+        }
+
+        function collectTopLevelPipelines(ast) {
+            if (!ast || typeof ast !== "object") return [];
+            if (ast.type === "Program") {
+                return (ast.statements || []).filter((statement) => statement?.type === "Pipeline");
+            }
+            return ast.type === "Pipeline" ? [ast] : [];
+        }
+
+        function pipelineTitle(pipeline, index) {
+            const nodes = pipelineNodes(pipeline);
+            if (!nodes.length) return `Flow ${index + 1}`;
+            const first = nodeText(nodes[0]);
+            const last = nodeText(nodes[nodes.length - 1]);
+            return first === last ? first : `${first} → ${last}`;
+        }
+
+        function syncPipelineToCursor(line) {
+            if (!visiblePipelines.length) return;
+            let candidate = 0;
+            visiblePipelines.forEach((pipeline, index) => {
+                if (Number.isFinite(pipeline.line) && pipeline.line <= line) candidate = index;
+            });
+            if (candidate !== activePipelineIndex) showPipeline(candidate, false);
+        }
+
+        function showPipeline(index, animate = false) {
+            const flowContent = document.getElementById("flow-content");
+            const pipeline = visiblePipelines[index];
+            if (!pipeline) return;
+            activePipelineIndex = index;
+
+            flowContent.className = "flow-layout";
+            flowContent.replaceChildren();
+
+            if (visiblePipelines.length > 1) {
+                const switcher = document.createElement("div");
+                switcher.className = "pipeline-switcher";
+                visiblePipelines.forEach((candidate, candidateIndex) => {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = `pipeline-chip${candidateIndex === index ? " active" : ""}`;
+                    button.textContent = pipelineTitle(candidate, candidateIndex);
+                    button.addEventListener("click", () => showPipeline(candidateIndex, false));
+                    switcher.append(button);
+                });
+                flowContent.append(switcher);
+            }
+
+            const legend = document.createElement("div");
+            legend.className = "flow-legend";
+            [
+                ["変数", "var(--variable)"],
+                ["関数", "var(--function)"],
+                ["システム", "var(--system)"],
+                ["オブジェクト", "var(--object)"],
+                ["値", "var(--literal)"]
+            ].forEach(([label, color]) => {
+                const item = document.createElement("span");
+                item.className = "legend-item";
+                const swatch = document.createElement("span");
+                swatch.className = "legend-swatch";
+                swatch.style.setProperty("--swatch", color);
+                const text = document.createElement("span");
+                text.textContent = label;
+                item.append(swatch, text);
+                legend.append(item);
+            });
+            flowContent.append(legend, createPipelineFlow(pipeline));
+
+            if (animate) {
+                const nodes = Array.from(flowContent.querySelectorAll(".flow-node"));
+                nodes.forEach((node, nodeIndex) => {
+                    window.setTimeout(() => node.classList.add("is-active"), nodeIndex * 130);
+                    window.setTimeout(() => node.classList.remove("is-active"), nodeIndex * 130 + 520);
+                });
+            }
+        }
+
+        async function renderAST(astJson) {
+            const flowContent = document.getElementById("flow-content");
+            try {
+                const ast = JSON.parse(astJson);
+                if (ast.error) throw new Error(ast.error);
+                visiblePipelines = collectTopLevelPipelines(ast);
+                activePipelineIndex = Math.min(activePipelineIndex, Math.max(visiblePipelines.length - 1, 0));
+
+                if (!visiblePipelines.length) {
+                    flowContent.className = "flow-empty";
+                    flowContent.textContent = "表示できるパイプラインがありません。";
+                    return;
+                }
+                showPipeline(activePipelineIndex, true);
+            } catch (error) {
+                flowContent.className = "flow-empty";
+                flowContent.textContent = `データフローを構築できません: ${error.message}`;
+            }
+        }
+
         
         // ── Terminal I/O ──
         window.appendTerminalOutput = function(text) {
@@ -670,6 +1085,12 @@
         // ── Pyodide Setup ──
         let pyodideReadyPromise;
         let pyodideInstance;
+        const runtimeStatus = document.getElementById('runtime-status');
+
+        function setRuntimeStatus(state, message) {
+            runtimeStatus.className = `runtime-state ${state}`;
+            runtimeStatus.textContent = message;
+        }
 
         async function initPyodide() {
             pyodideInstance = await loadPyodide();
@@ -704,10 +1125,19 @@
             return pyodideInstance;
         }
         
-        pyodideReadyPromise = initPyodide();
+        pyodideReadyPromise = initPyodide()
+            .then((instance) => {
+                setRuntimeStatus('ready', '準備完了');
+                return instance;
+            })
+            .catch((error) => {
+                setRuntimeStatus('error', '準備に失敗');
+                throw error;
+            });
 
         document.getElementById('run-btn').addEventListener('click', async () => {
             const runBtn = document.getElementById('run-btn');
+            const runLabel = runBtn.querySelector('.button-label');
             const outputEl = document.getElementById('output');
             const errorEl = document.getElementById('error');
             const loadingEl = document.getElementById('loading');
@@ -717,9 +1147,10 @@
             outputEl.textContent = '';
             outputEl.classList.remove('console-welcome');
             errorEl.style.display = 'none';
-            loadingEl.style.display = 'block';
+            loadingEl.style.display = 'flex';
             runBtn.classList.add('running');
-            flowContent.innerHTML = '<span style="color:#666">Analyzing...</span>';
+            runLabel.textContent = '実行中';
+            setRuntimeStatus('running', '実行中');
 
             try {
                 await pyodideReadyPromise;
@@ -769,20 +1200,32 @@ sys.stderr = sys.__stderr__
                 // if (!outputEl.textContent.trim()) { outputEl.textContent = " "; }
                 
                 await renderAST(astJson);
+                setRuntimeStatus('ready', '実行完了');
 
             } catch (err) {
-                errorEl.textContent = "Error executing code:\n" + err;
+                errorEl.textContent = "実行中にエラーが発生しました:\n" + err;
                 errorEl.style.display = 'block';
+                setRuntimeStatus('error', '実行エラー');
             } finally {
                 loadingEl.style.display = 'none';
                 runBtn.classList.remove('running');
+                runLabel.textContent = '実行';
             }
         });
 
         document.getElementById('clear-btn').addEventListener('click', () => {
-            editor.setValue("", -1);
-            
-            
+            const selected = SAMPLES[sampleSelect.value] || SAMPLES['hello'];
+            editor.setValue(selected?.code || "", -1);
+            document.getElementById('active-file-name').textContent = selected?.name || 'main.pop';
+            document.getElementById('output').textContent = '実行の準備ができました。';
+            document.getElementById('output').classList.add('console-welcome');
+            document.getElementById('error').style.display = 'none';
+            visiblePipelines = [];
+            activePipelineIndex = 0;
+            const flowContent = document.getElementById('flow-content');
+            flowContent.className = 'flow-empty';
+            flowContent.innerHTML = '<div class="flow-empty-card"><div class="flow-empty-icon" aria-hidden="true">⇣</div><div>コードを実行すると、選択した一本の流れを上から下へ表示します。</div></div>';
+            setRuntimeStatus('ready', '準備完了');
         });
         
         

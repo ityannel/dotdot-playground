@@ -2,7 +2,7 @@
   "name": "vscode-poppop",
   "displayName": "PopPop Language Support Japanese — Popcorn",
   "description": "PopPop 言語向けの日本語ホバー、データフロー表示、診断、Windows 実行器を提供します。",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "publisher": "poppop-dev",
   "main": "./extension.js",
   "scripts": {
@@ -121,7 +121,8 @@
     "commands": [
       {
         "command": "poppop.runFile",
-        "title": "PopPop: ファイルを実行"
+        "title": "PopPop: ファイルを実行",
+        "icon": "$(play)"
       },
       {
         "command": "poppop.refreshFlowHighlights",
@@ -147,6 +148,11 @@
     ],
     "menus": {
       "editor/title": [
+        {
+          "command": "poppop.runFile",
+          "when": "resourceLangId == poppop",
+          "group": "navigation@1"
+        },
         {
           "command": "poppop.showFlowVisualizer",
           "when": "resourceLangId == poppop",
