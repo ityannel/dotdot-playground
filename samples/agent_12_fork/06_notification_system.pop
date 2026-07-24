@@ -1,0 +1,44 @@
+new SendPushNotification:
+    @ >> payload.
+    (payload & "push_enabled") >> Get >> enabled.
+    enabled >> check:
+        is true:
+            (payload & "msg") >> Get >> msg.
+            ("PUSH: Sent '{}' to mobile device." & msg) >> Format >> Display.
+        else:
+            "PUSH: User disabled push notifications." >> Display.
+    ..
+..
+
+new SendEmail:
+    @ >> payload.
+    (payload & "msg") >> Get >> msg.
+    ("EMAIL: Sent '{}' to user email address." & msg) >> Format >> Display.
+..
+
+new LogNotificationEvent:
+    @ >> payload.
+    payload >> ToJson >> json_payload.
+    ("LOG: Notification event recorded: {}" & json_payload) >> Format >> Display.
+..
+
+new DispatchNotification:
+    @ >> payload.
+    "--- Dispatching Notification ---" >> Display.
+    payload >> Fork:
+        @ >> SendPushNotification.
+        @ >> SendEmail.
+        @ >> LogNotificationEvent.
+    ..
+..
+
+[
+    {"msg": "Your password was changed.", "push_enabled": true},
+    {"msg": "Weekly newsletter is here!", "push_enabled": false}
+] >> notifications.
+
+notifications >> Map:
+    @ >> DispatchNotification.
+.. >> dummy.
+
+"All notifications dispatched." >> Display.

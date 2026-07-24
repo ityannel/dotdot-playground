@@ -1,0 +1,15 @@
+["Alice", null, "Bob", null, "Charlie"] >> names.
+
+"--- Filling Missing Data ---" >> Display.
+
+names >> Map:
+    @ >> item.
+    item >> Type >> check:
+        is "list": "UNKNOWN" >> Return.
+    ..
+    item >> Return.
+.. >> filled_names.
+
+"Filled Data: " >> msg.
+(filled_names >> ToJson) >+> msg.
+msg >> Display.

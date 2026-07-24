@@ -1,0 +1,26 @@
+new InnerFault:
+    (1 / 0).
+..
+
+new MiddleProcess:
+    null >> InnerFault >> catch:
+        @ >> err.
+        "Inner caught error" >> Display.
+        ("a" & 1) >> Add >> dummy. 
+    ..
+..
+
+new OuterProcess:
+    null >> MiddleProcess >> catch:
+        @ >> err.
+        "Outer caught error, recovering safely" >> Display.
+        "Safe final value" >> Return.
+    ..
+..
+
+[null] >> Map:
+    @ >> OuterProcess >> Return.
+.. >> res.
+
+"Final result:" >> Display.
+res[0] >> Display.

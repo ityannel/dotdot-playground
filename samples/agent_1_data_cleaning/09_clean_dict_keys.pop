@@ -1,0 +1,27 @@
+[
+    {"name": "Alice", "age": 25},
+    {"age": 30},
+    {"name": "Bob"}
+] >> records.
+
+"--- Cleaning Records ---" >> Display.
+
+records >> Map:
+    @ >> record.
+    
+    (record & "name") >> Contains >> check:
+        is false:
+            (record & "name" & "Unknown") >> Set >> record.
+    ..
+    
+    (record & "age") >> Contains >> check:
+        is false:
+            (record & "age" & 0) >> Set >> record.
+    ..
+    
+    record >> Return.
+.. >> clean_records.
+
+"Cleaned: " >> msg.
+(clean_records >> ToJson) >+> msg.
+msg >> Display.

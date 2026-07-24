@@ -1,0 +1,12 @@
+[{"name": "Alice"}, {"age": 30}] >> records.
+
+records >> Map:
+    @ >> record.
+    (record & "name") >> Contains >> check:
+        is false:
+            (record & "name" & "Unknown") >> Set >> record.
+    ..
+    record >> Return.
+.. >> clean_records.
+
+(clean_records >> ToJson) >> Display.

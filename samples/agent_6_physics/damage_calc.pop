@@ -1,0 +1,24 @@
+new CalcDamage:
+    @ >> args.
+    args[0] >> attacker.
+    args[1] >> defender.
+    
+    attacker["atk"] - defender["def"] >> dmg.
+    dmg >> check:
+        is < 1:
+            1 >> dmg.
+        else:
+            dmg >> dmg.
+    ..
+    defender["hp"] - dmg >> new_hp.
+    (defender & "hp" & new_hp) >> Set.
+..
+
+{"name": "Orc", "atk": 25} >> enemy.
+{"name": "Hero", "hp": 100, "def": 10} >> player.
+
+(enemy & player) >> CalcDamage >> player.
+
+player >> Fork:
+    @["hp"] >> Display.
+..

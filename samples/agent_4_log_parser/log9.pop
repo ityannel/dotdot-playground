@@ -1,0 +1,21 @@
+[
+    "User admin logged in with password=secret",
+    "User guest logged in with password=12345",
+    "System check OK"
+] >> logs.
+
+new MaskPassword:
+    @ >> msg.
+    (msg & "password=") >> Contains >> has_pass.
+    has_pass >> check:
+        is true:
+            (msg & "=") >> Split >> parts.
+            parts[0] >+> "=***" >> Return.
+        else:
+            msg >> Return.
+    ..
+..
+
+logs >~> MaskPassword >> masked.
+"Masked logs:" >> Display.
+masked >> Display.

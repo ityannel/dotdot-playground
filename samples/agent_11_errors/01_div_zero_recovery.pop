@@ -1,0 +1,20 @@
+new SafeDivide:
+    @ >> arr.
+    (arr[0] / arr[1]).
+..
+
+new Process:
+    @ >> num.
+    (100 & num) >> SafeDivide >> catch:
+        @ >> err.
+        "Recovered from zero division" >> Display.
+        -1 >> Return.
+    ..
+..
+
+[10, 5, 0, 2, 0, 1] >> Map:
+    @ >> Process >> Return.
+.. >> results.
+
+"Results with default fallback:" >> Display.
+results >> Display.

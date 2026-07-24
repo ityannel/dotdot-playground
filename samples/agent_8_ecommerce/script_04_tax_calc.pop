@@ -1,0 +1,20 @@
+// script_04_tax_calc.pop
+15000 >> subtotal.
+"NY" >> state.
+
+state >> check:
+    is "NY":
+        0.08875 >> tax_rate.
+    is "CA":
+        0.0725 >> tax_rate.
+    else:
+        0.0 >> tax_rate.
+..
+
+(subtotal * tax_rate) >> tax_amount.
+(subtotal + tax_amount) >> total_with_tax.
+
+(["Subtotal: ", (subtotal >> Str)] & "") >> Join >> Display.
+(["Tax Rate: ", (tax_rate >> Str)] & "") >> Join >> Display.
+(["Tax Amount: ", (tax_amount >> Str)] & "") >> Join >> Display.
+(["Total with Tax: ", (total_with_tax >> Str)] & "") >> Join >> Display.

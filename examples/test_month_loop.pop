@@ -1,0 +1,26 @@
+// LastDay function definition
+(int yr & int mth) >> new LastDay:
+    mth >> check:
+        is 2:
+            (yr % 400 == 0) || (yr % 4 == 0 && yr % 100 != 0) >> check:
+                is true: 29 >> Return.
+                else:    28 >> Return.
+            ..
+        is 4: 30 >> Return.
+        is 6: 30 >> Return.
+        is 9: 30 >> Return.
+        is 11: 30 >> Return.
+        else: 31 >> Return.
+    ..
+..
+
+// Test for (i = 1; i < month; i++) total += lastDay(year, i);
+2024 >> year.
+5 >> month. // May 1st -> sum of Jan, Feb, Mar, Apr (31 + 29 + 31 + 30 = 121)
+0 >> total.
+
+[1, month - 1] >> Range >> do each:
+    total + (year & @ >> LastDay) >> total.
+..
+
+"{0}年{1}月までの経過日数: {2}日" & year & month & total >> Format >> Display.

@@ -1,0 +1,44 @@
+// ecommerce_cart.pop
+[
+    {"item": "Laptop", "price": 1200, "stock": 5, "qty": 1},
+    {"item": "Mouse", "price": 25, "stock": 0, "qty": 2},
+    {"item": "Keyboard", "price": 75, "stock": 10, "qty": 1},
+    {"item": "Monitor", "price": 300, "stock": 2, "qty": 3}
+] >> cart.
+
+cart >> Map @c:
+    c["qty"] >> q.
+    c["stock"] >> s.
+    q >> check:
+        is > s:
+            (c & "qty" & s) >> Set >> Return.
+        else:
+            c >> Return.
+    ..
+.. >> adjusted_cart.
+
+adjusted_cart >> Filter @ac:
+    ac["qty"] >> check:
+        is > 0: true >> Return.
+        else: false >> Return.
+    ..
+.. >> valid_cart.
+
+valid_cart >> Map @vc:
+    (vc["price"] * vc["qty"]) >> Return.
+.. >> subtotals.
+
+subtotals >> Reduce @acc @val:
+    (acc + val) >> Return.
+.. >> total_amount.
+
+total_amount >> check:
+    is > 1000:
+        (total_amount * 0.9) >> total_amount.
+    else:
+        total_amount >> total_amount.
+..
+
+"Final Cart Items:" >> Display.
+valid_cart >> ToJson >> Display.
+$"Total Amount to Pay: ${total_amount}" >> Display.

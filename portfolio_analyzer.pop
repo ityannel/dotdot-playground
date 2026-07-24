@@ -1,0 +1,73 @@
+// =========================================================
+// 🚀 PopPop スマート・ポートフォリオ アナライザー & リーダーボード
+// =========================================================
+
+"==================================================" >> Display.
+"📊 リアルタイム資産ポートフォリオ分析システム" >> Display.
+"==================================================" >> Display.
+
+// ① 銘柄リストと保有データの定義
+[
+    {"symbol": "BTC",  "name": "Bitcoin",   "price": 96500, "change": 5.4,  "amount": 0.5},
+    {"symbol": "ETH",  "name": "Ethereum",  "price": 3600,  "change": -1.8, "amount": 4.0},
+    {"symbol": "SOL",  "name": "Solana",    "price": 220,   "change": 18.5, "amount": 30.0},
+    {"symbol": "DOGE", "name": "Dogecoin",  "price": 0.35,  "change": 32.1, "amount": 10000.0},
+    {"symbol": "NVDA", "name": "Nvidia",    "price": 140,   "change": 4.2,  "amount": 50.0},
+    {"symbol": "AAPL", "name": "Apple",     "price": 230,   "change": -0.5, "amount": 25.0}
+] >> assets.
+
+// ② 各銘柄の評価額 (value) を算出
+assets >> Map(coin):
+    {
+        "symbol": coin::symbol,
+        "name": coin::name,
+        "price": coin::price,
+        "change": coin::change,
+        "value": coin::price * coin::amount
+    }
+.. >> List >> evaluated_assets.
+
+"--------------------------------------------------" >> Display.
+"🔥 【24時間上昇率ランキング Top 3】 (Sort & Slice)" >> Display.
+"--------------------------------------------------" >> Display.
+
+// ③ (ソート結果, 0, 3) をタプルで束ねて左から Slice へポップ！
+(evaluated_assets >> Sort:
+    -@::change
+.., 0, 3) >> Slice >> top_performers.
+
+top_performers >> Map(coin):
+    "🚀 {coin::symbol} ({coin::name}): +{coin::change}% | 評価額: ${coin::value}" >> Display.
+..
+
+"--------------------------------------------------" >> Display.
+"💎 【保有資産額（評価額）ランキング】 (Sort: -@::value)" >> Display.
+"--------------------------------------------------" >> Display.
+
+// ④ 評価額の降順（-@::value）でソート
+evaluated_assets >> Sort:
+    -@::value
+.. >> sorted_by_value.
+
+sorted_by_value >> Map(coin):
+    "💰 {coin::symbol} ({coin::name}): ${coin::value} (単価: ${coin::price})" >> Display.
+..
+
+"--------------------------------------------------" >> Display.
+"⚠️ 【調整推奨リスク銘柄】 (Filter & Sort)" >> Display.
+"--------------------------------------------------" >> Display.
+
+// ⑤ マイナス成長の銘柄を抽出して下落幅順にソート
+evaluated_assets >> Filter(coin):
+    coin::change < 0
+.. >> Sort:
+    @::change
+.. >> risk_assets.
+
+risk_assets >> Map(coin):
+    "🔻 警戒: {coin::symbol} ({coin::change}%) - 評価額: ${coin::value}" >> Display.
+..
+
+"==================================================" >> Display.
+"✅ ポートフォリオ分析＆最適化レポート作成完了！" >> Display.
+"==================================================" >> Display.

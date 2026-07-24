@@ -1,0 +1,7 @@
+"Hello World!" >> Display.
+
+a & b >> new Plus:
+    a + b >> Return.
+..
+
+12 & 23 >> Plus >> Display.

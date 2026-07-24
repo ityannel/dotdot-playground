@@ -1,0 +1,54 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        @import url('https://cdn.jsdelivr.net/npm/line-seed-jp/dist/line-seed-jp.css');
+        body {
+            font-family: 'LINE Seed JP', sans-serif;
+            padding: 40px;
+            color: #333;
+            line-height: 1.6;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        pre code {
+            display: block;
+            padding: 10px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>PopPop (.pop) Language Specification</h1>
+<p>PopPop (ポップポップ) 🎈 is a modern, pipe-oriented programming language designed for data processing.</p>
+<h2>Philosophy</h2>
+<p>"Data enters, logic pops, insights expand."</p>
+<p>PopPop emphasizes data streams, declarative pipelines, and lazy evaluation, making it ideal for robust and efficient processing tasks.</p>
+<h2>Syntax Overview</h2>
+<h3>Comments</h3>
+<p>Comments start with <code>\/\/</code>:</p>
+<pre><code class="language-poppop">\/\/ This is a comment
+</code></pre>
+<h3>Pipelines</h3>
+<p>Data flows from left to right using the <code>&gt;&gt;</code> operator.</p>
+<pre><code class="language-poppop">10 &gt;&gt; Add(5) &gt;&gt; Display.
+</code></pre>
+<h3>Streams</h3>
+<p>Data streams and lists are defined using square brackets:</p>
+<pre><code class="language-poppop">[1, 2, 3] &gt;&gt; Map(x -&gt; x * 2) &gt;&gt; Display.
+</code></pre>
+<h3>Functions</h3>
+<p>Custom functions can be defined seamlessly:</p>
+<pre><code class="language-poppop">[1, 2] &gt;&gt; Map(n -&gt; n + 1) &gt;&gt; Display.
+</code></pre>
+</body>
+</html>

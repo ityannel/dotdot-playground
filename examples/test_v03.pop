@@ -1,0 +1,49 @@
+// Test File for PopPop v0.2 / v0.3 Ultimate Features
+
+"--- 1. Property Index Access (::) ---" >> Display.
+{"name": "Alice", "age": 25} >> user.
+user::name >> Display.
+user::age >> Display.
+[10, 20, 30] >> data.
+data::1 >> Display.
+
+"--- 2. Configurable Implicit Variables ---" >> Display.
+[1, 2, 3] >> Map @val:
+    @val * 2 >> Return.
+.. >> Display.
+
+[10, 20, 30] >> Reduce @sum @val:
+    @sum + @val >> Return.
+.. >> Display.
+
+"--- 3. Error Pipeline (>~>) ---" >> Display.
+"abc" >> Int >~> 0 >> Display.
+"123" >> Int >~> 0 >> Display.
+
+"--- 4. Zip Stream Block ---" >> Display.
+([100, 200] & [0.1, 0.2]) >> Zip @price @tax:
+    @price * @tax >> Return.
+.. >> Display.
+
+"--- 5. Sort and Group Blocks ---" >> Display.
+[{"id": 3, "val": "C"}, {"id": 1, "val": "A"}, {"id": 2, "val": "B"}] >> Sort @item:
+    @item::id >> Return.
+.. >> Display.
+
+[{"cat": "A", "val": 1}, {"cat": "B", "val": 2}, {"cat": "A", "val": 3}] >> Group @item:
+    @item::cat >> Return.
+.. >> Display.
+
+"--- 6. Destructuring Assignment ---" >> Display.
+[100, 200] >> (x & y).
+x >> Display.
+y >> Display.
+
+("Alice,25" & ",") >> Split >> (name & age).
+name >> Display.
+age >> Display.
+
+"--- 7. String Interpolation ---" >> Display.
+{"user": "Bob", "score": 100} >> $"User {@::user} scored {@::score} points!" >> Display.
+
+"--- All Tests Complete ---" >> Display.

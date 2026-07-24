@@ -1,0 +1,14 @@
+12 >> check:
+    is 12: "Matched 12!" >> Display.
+    is 23: "Matched 23!" >> Display.
+..
+
+30 >> check:
+    is > 20: "Matched > 20!" >> Display.
+    is 30: "Matched 30!" >> Display.
+..
+
+"getter" >> check:
+    is "getter": "getterと同じです。" >> Display.
+    is "setter": "setterと同じです。" >> Display.
+..

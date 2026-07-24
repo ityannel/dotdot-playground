@@ -1,0 +1,28 @@
+// script_01_total.pop
+[
+    {"name": "Laptop", "price": 1500, "qty": 1},
+    {"name": "Mouse", "price": 50, "qty": 2},
+    {"name": "Keyboard", "price": 80, "qty": 1},
+    {"name": "Monitor", "price": 300, "qty": 2}
+] >> cart.
+
+"Calculating total for cart items..." >> Display.
+
+cart >> Map:
+    @ >> item.
+    (item["price"] * item["qty"]) >> Return.
+.. >> item_totals.
+
+"Individual item totals:" >> Display.
+item_totals >> Display.
+
+item_totals >> check:
+    is null: 
+        0 >> total.
+    else: 
+        item_totals >> Reduce @acc @item:
+            (@acc + @item) >> Return.
+        .. >> total.
+..
+
+(["Total Amount: $", (total >> Str)] & "") >> Join >> Display.

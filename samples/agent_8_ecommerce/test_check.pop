@@ -1,0 +1,5 @@
+// test_check.pop
+100 >> check:
+    is > 50: "Greater than 50" >> Display.
+    else: "Less or equal 50" >> Display.
+..

@@ -1,0 +1,30 @@
+new IsInRadius:
+    @ >> obj.
+    obj["x"] * obj["x"] >> dx2.
+    obj["y"] * obj["y"] >> dy2.
+    dx2 + dy2 >> dist2.
+    dist2 < 100 >> Return.
+..
+
+new TakeDamage:
+    @ >> obj.
+    obj["hp"] - 30 >> new_hp.
+    (obj & "hp" & new_hp) >> Set >> Return.
+..
+
+[
+    {"id": 1, "x": 5, "y": 5, "hp": 100},
+    {"id": 2, "x": 10, "y": 10, "hp": 100},
+    {"id": 3, "x": 0, "y": 8, "hp": 100}
+] >> targets.
+
+targets >> Filter:
+    @ >> IsInRadius >> Return.
+.. >> hit_targets.
+
+hit_targets >> Map:
+    @ >> TakeDamage >> Return.
+.. >> hit_targets.
+
+"Targets hit by AoE and took damage:" >> Display.
+hit_targets >> Display.

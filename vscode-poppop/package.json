@@ -1,0 +1,158 @@
+{
+  "name": "vscode-poppop",
+  "displayName": "PopPop Language Support Japanese — Popcorn",
+  "description": "PopPop 言語向けの日本語ホバー、データフロー表示、診断、Windows 実行器を提供します。",
+  "version": "1.8.0",
+  "publisher": "poppop-dev",
+  "main": "./extension.js",
+  "scripts": {
+    "test": "node assignment-targets.test.js && node semantic-highlights.test.js && node language-features.test.js && node extension-flow.test.js"
+  },
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:poppop",
+    "onCommand:poppop.runFile",
+    "onCommand:poppop.refreshFlowHighlights",
+    "onCommand:poppop.showResults"
+    ,"onCommand:poppop.showFlowVisualizer"
+  ],
+  "contributes": {
+    "configuration": {
+      "title": "PopPop Japanese",
+      "properties": {
+        "poppop.highlightFinalAssignmentTargets": {
+          "type": "boolean",
+          "default": true,
+          "description": "パイプラインの最終代入先を太字・斜体で表示します。"
+        },
+        "poppop.visualizePipelineFlow": {
+          "type": "boolean",
+          "default": false,
+          "description": "各 PopPop パイプラインの下にガイドを表示します。既定ではオフです。"
+        },
+        "poppop.highlightVariableFlow": {
+          "type": "boolean",
+          "default": true,
+          "description": "カーソルまたは選択中の変数の利用箇所を背景色で表示します。"
+        },
+        "poppop.highlightImplicitVariableScopes": {
+          "type": "boolean",
+          "default": true,
+          "description": "PopPop ストリームブロック内で @ の有効範囲を表示します。"
+        },
+        "poppop.enableDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "未定義変数、未使用代入、@ の誤用、パイプラインの書式・型に関する問題を表示します。"
+        },
+        "poppop.runtimePath": {
+          "type": "string",
+          "default": "",
+          "description": "PopPop 実行器のパスです。通常は不要です。独自の実行器を使う場合だけ指定してください。"
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[poppop]": {
+        "editor.tokenColorCustomizations": {
+          "textMateRules": [
+            {
+              "scope": "entity.name.function.poppop",
+              "settings": {
+                "foreground": "#DCDCAA",
+                "fontStyle": ""
+              }
+            },
+            {
+              "scope": "support.function.builtin.poppop",
+              "settings": {
+                "foreground": "#DCDCAA",
+                "fontStyle": ""
+              }
+            },
+            {
+              "scope": "keyword.control.flow.poppop",
+              "settings": {
+                "foreground": "#C586C0",
+                "fontStyle": ""
+              }
+            },
+            {
+              "scope": "variable.other.readwrite.poppop",
+              "settings": {
+                "foreground": "#9CDCFE"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "poppop",
+        "aliases": [
+          "PopPop",
+          "pop"
+        ],
+        "extensions": [
+          ".pop",
+          ".poppop"
+        ],
+        "icon": {
+          "light": "./po.png",
+          "dark": "./po.png"
+        },
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "poppop",
+        "scopeName": "source.poppop",
+        "path": "./syntaxes/poppop.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "poppop.runFile",
+        "title": "PopPop: ファイルを実行"
+      },
+      {
+        "command": "poppop.refreshFlowHighlights",
+        "title": "PopPop: データフロー表示を更新"
+      },
+      {
+        "command": "poppop.showResults",
+        "title": "PopPop: 実行結果を表示"
+      },
+      {
+        "command": "poppop.showFlowVisualizer",
+        "title": "PopPop: データフローを表示",
+        "icon": "$(graph)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "poppop.runFile",
+        "key": "ctrl+f5",
+        "mac": "cmd+f5",
+        "when": "editorTextFocus && resourceLangId == poppop"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "poppop.showFlowVisualizer",
+          "when": "resourceLangId == poppop",
+          "group": "navigation@2"
+        }
+      ]
+    }
+  }
+}

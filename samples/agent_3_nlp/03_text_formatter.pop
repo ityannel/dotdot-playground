@@ -1,0 +1,26 @@
+// 03_text_formatter.pop
+// Formats a text by converting it to Title Case (capitalizing the first letter of each word).
+
+"this is a raw unformatted text. it needs to be properly formatted and title cased for display purposes." >> text.
+
+("Original: " + text) >> Display.
+
+(text & " ") >> Split >> words.
+
+words >> Map @w:
+    @w >> Length >> l.
+    l >> check:
+        is > 0:
+            (@w & 0 & 1) >> Slice >> Uppercase >> first_char.
+            (@w & 1 & l) >> Slice >> Lowercase >> rest.
+            (first_char + rest) >> Return.
+        else:
+            @w >> Return.
+    ..
+.. >> title_words.
+
+// Join the words back into a single string
+(title_words & " ") >> Join >> formatted_text.
+
+"--- Formatted Result ---" >> Display.
+formatted_text >> Display.

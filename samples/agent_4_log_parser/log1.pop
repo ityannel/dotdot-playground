@@ -1,0 +1,24 @@
+[
+    "[2023-10-01 10:00:01] INFO User logged in",
+    "[2023-10-01 10:05:23] ERROR Database connection failed",
+    "[2023-10-01 10:10:45] WARNING High memory usage",
+    "[2023-10-01 10:15:00] ERROR Timeout occurred"
+] >> logs.
+
+logs >> Filter @log:
+    (log & "ERROR") >> Contains >> Return.
+.. >> error_logs.
+
+new ExtractTimestamp:
+    (@ & "]") >> Split >> parts.
+    parts[0] >> ts_part.
+    (ts_part & "[") >> Split >> inner_parts.
+    inner_parts[1] >> Return.
+..
+
+error_logs >~> ExtractTimestamp >> timestamps.
+
+"Error timestamps:" >> Display.
+timestamps >!> @ts:
+    ts >> Display.
+..

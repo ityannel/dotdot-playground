@@ -1,0 +1,29 @@
+[
+    {"id": "001", "name": "alice", "age": "24", "password": "hash123", "score1": "85", "score2": "92", "status": "active"},
+    {"id": "002", "name": "bob",   "age": "30", "password": "hash456", "score1": "78", "score2": "81", "status": "inactive"},
+    {"id": "003", "name": "charlie","age": "invalid", "password": "hash789", "score1": "95", "score2": "99", "status": "active"}
+] >> users.
+
+"--- 元のデータ ---" >> Display.
+users >> Display.
+"" >> Display.
+
+"--- Update & Drop 処理後 ---" >> Display.
+users >> Map(user):
+    user >> Update:
+        // 1. 名前の先頭を大文字にする
+        ::name >> Uppercase.
+        
+        // 2. 複数のスコア文字列を、一気に数値（Num）に変換する！
+        (::score1, ::score2) >> Num.
+        
+        // 3. 年齢を数値に変換（エラーが起きたら 0 にフォールバック）
+        ::age >> Num >> Catch(err): 0 ..
+        
+        // 4. 新しいプロパティ（キー）を追加する
+        ::is_admin >> false.
+        
+        // 5. セキュリティのため、パスワードと内部用IDをまとめて削除！
+        (::password, ::id) >> Drop.
+    ..
+.. >> Display.

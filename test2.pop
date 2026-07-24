@@ -1,0 +1,4 @@
+new Test:
+    10 >> Return.
+..
+null >> Test >> Display.

@@ -1,0 +1,21 @@
+"torvalds" >> username.
+"https://api.github.com/users/{0}/repos?per_page=100" & username >> Format >> Fetch >> FromJson >> repos.
+
+repos >> do each:
+    repo. // 現在の要素をrepoに退避
+    repo & "stargazers_count" >> Get >> stars.
+    repo & "name" >> Get >> name.
+    "{0:06d}:{1}" & stars & name >> Format.
+.. >> stats.
+
+repos >> Length >> repos_len.
+"リポジトリ数: {0}" & repos_len >> Format >> Display.
+
+stats >> Sort >> Reverse >> sorted_stats.
+sorted_stats & 0 & 5 >> Slice >> do each:
+    line. // 文字列を退避
+    line & ":" >> Split >> parts.
+    parts & 0 >> Get >> stars.
+    parts & 1 >> Get >> name.
+    "★ {0} : {1}" & stars & name >> Format >> Display.
+..

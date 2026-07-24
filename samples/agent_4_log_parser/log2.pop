@@ -1,0 +1,31 @@
+[
+    "INFO: User created",
+    "DEBUG: Cache miss",
+    "INFO: User deleted",
+    "ERROR: Null pointer",
+    "WARNING: Disk full",
+    "INFO: Logout"
+] >> logs.
+
+new ExtractLevel:
+    (@ & ":") >> Split >> parts.
+    parts[0] >> Return.
+..
+
+logs >> Map @log:
+    log >> ExtractLevel.
+.. >> levels.
+
+{} >> counts.
+levels >!> @level:
+    (counts & level) >> Get >> catch:
+        @ >> err.
+        0
+    .. >> current_count.
+    
+    (current_count + 1) >> new_count.
+    (counts & level & new_count) >> Set >> counts.
+..
+
+"Log level counts:" >> Display.
+counts >> ToJson >> Display.

@@ -1,0 +1,15 @@
+[-10, 50, 120, 75, 100, -5, 25] >> values.
+
+"--- Removing Outliers ---" >> Display.
+
+values >> Filter:
+    @ >> check:
+        is < 0: false >> Return.
+        is > 100: false >> Return.
+    ..
+    true >> Return.
+.. >> valid_values.
+
+"Valid values: " >> msg.
+(valid_values >> ToJson) >+> msg.
+msg >> Display.

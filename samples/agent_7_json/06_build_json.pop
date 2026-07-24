@@ -1,0 +1,9 @@
+// 06_build_json.pop
+{} >> base_dict.
+(base_dict & "endpoint" & "/api/v1/users") >> Set >> dict1.
+(dict1 & "method" & "POST") >> Set >> dict2.
+
+["Alice", "Bob"] >> users.
+(dict2 & "data" & users) >> Set >> final_dict.
+
+final_dict >> ToJson >> Display.

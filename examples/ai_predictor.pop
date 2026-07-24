@@ -1,0 +1,48 @@
+"==========================================" >> Display.
+"    🧠 AI Name Profiler (Parallel AI)     " >> Display.
+"==========================================" >> Display.
+
+"Please enter a first name (e.g. Michael, Sakura): " >> Input >> name.
+
+"Analyzing '{0}' using 3 AI models in parallel..." & name >> Format >> Display.
+"------------------------------------------" >> Display.
+
+// 3つの予測AI (年齢、性別、国籍) のAPIエンドポイントを準備
+[
+    "https://api.agify.io?name={0}", 
+    "https://api.genderize.io?name={0}", 
+    "https://api.nationalize.io?name={0}"
+] >> fork:
+    url_template.
+    
+    // URLをフォーマットしてフェッチ
+    url_template & name >> Format >> url.
+    url >> Fetch >> catch:
+        err.
+        // 失敗時はダミー結果を返す
+        {"age": 0, "gender": "unknown", "probability": 0, "country": [{"country_id": "UN", "probability": 0}]} >> ToJson.
+    .. >> FromJson >> Return.
+.. >> results.
+
+// 結果の解析
+results & 0 >> Get >> age_data.
+results & 1 >> Get >> gender_data.
+results & 2 >> Get >> nat_data.
+
+age_data & "age" >> Get >> age.
+gender_data & "gender" >> Get >> gender.
+gender_data & "probability" >> Get >> gender_prob.
+
+// 国籍は配列のトップを取得
+nat_data & "country" >> Get >> country_list.
+country_list & 0 >> Get >> top_country.
+top_country & "country_id" >> Get >> country_id.
+top_country & "probability" >> Get >> nat_prob.
+
+
+"👤 Name Profile for '{0}':" & name >> Format >> Display.
+"  - 🎂 Predicted Age    : {0} years old" & age >> Format >> Display.
+"  - 🚻 Predicted Gender : {0} (Confidence: {1})" & gender & gender_prob >> Format >> Display.
+"  - 🌍 Predicted Origin : {0} (Confidence: {1})" & country_id & nat_prob >> Format >> Display.
+
+"==========================================" >> Display.

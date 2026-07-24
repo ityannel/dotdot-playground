@@ -1,0 +1,29 @@
+// task_summary_report.pop
+// Pipeline combining filter, reduce, and map to generate a summary string
+
+[] >> tasks.
+{"title": "Buy Milk", "done": true} >+> tasks.
+{"title": "Read Book", "done": false} >+> tasks.
+{"title": "Write Code", "done": true} >+> tasks.
+
+tasks >> Filter:
+    @["done"] >> check:
+        is true: true.
+        else: false.
+    ..
+.. >> completed_tasks.
+
+completed_tasks >> Map:
+    "- " + @["title"] + "\n".
+.. >> task_lines.
+
+"Completed Tasks:\n" >> report.
+
+task_lines >> Reduce @acc @item:
+    @acc + @item.
+.. >> report_content.
+
+report + report_content >> final_report.
+
+"--- Final Report ---" >> Display.
+final_report >> Display.

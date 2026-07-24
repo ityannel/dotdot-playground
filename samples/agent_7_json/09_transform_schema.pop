@@ -1,0 +1,26 @@
+// 09_transform_schema.pop
+"[{\"firstName\": \"John\", \"lastName\": \"Doe\", \"age\": 30}]" >> input_str.
+input_str >> FromJson >> input_arr.
+
+input_arr >> Map:
+    @ >> old_user.
+    (old_user & "firstName") >> Get >> fn.
+    (old_user & "lastName") >> Get >> ln.
+    (old_user & "age") >> Get >> age.
+    
+    "" >> full_name.
+    fn >+> full_name.
+    " " >+> full_name.
+    ln >+> full_name.
+    
+    age >> check:
+        is >= 18: true.
+        else: false.
+    .. >> is_adult.
+    
+    {} >> new_user.
+    (new_user & "fullName" & full_name) >> Set >> u1.
+    (u1 & "isAdult" & is_adult) >> Set.
+.. >> new_arr.
+
+new_arr >> ToJson >> Display.

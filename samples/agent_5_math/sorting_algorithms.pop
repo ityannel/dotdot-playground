@@ -1,0 +1,37 @@
+// 4. sorting_algorithms.pop
+// Demonstrates sorting algorithms and data manipulation using Sort blocks.
+
+[
+    {"name": "Alice", "score": 85},
+    {"name": "Bob", "score": 92},
+    {"name": "Charlie", "score": 78},
+    {"name": "Diana", "score": 95},
+    {"name": "Eve", "score": 88}
+] >> students.
+
+"Original Students: " >> out1.
+(students >> ToJson) >+> out1 >> Display.
+
+// Sort by score ascending
+students >> Sort:
+    @["score"].
+.. >> sorted_asc.
+
+"Sorted by Score (Asc): " >> out2.
+(sorted_asc >> ToJson) >+> out2 >> Display.
+
+// Sort by score descending (negative score)
+students >> Sort:
+    0 - @["score"].
+.. >> sorted_desc.
+
+"Sorted by Score (Desc): " >> out3.
+(sorted_desc >> ToJson) >+> out3 >> Display.
+
+// Sort by name length
+students >> Sort:
+    @["name"] >> Length.
+.. >> sorted_name_len.
+
+"Sorted by Name Length: " >> out4.
+(sorted_name_len >> ToJson) >+> out4 >> Display.

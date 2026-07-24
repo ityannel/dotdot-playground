@@ -1,0 +1,40 @@
+new SyncPrimary:
+    @ >> user.
+    (user & "username") >> Get >> uname.
+    ("DB_PRIMARY: Inserted user '{}'." & uname) >> Format >> Display.
+..
+
+new SyncSearchIndex:
+    @ >> user.
+    (user & "username") >> Get >> uname.
+    ("SEARCH_INDEX: Added '{}' for fast searching." & uname) >> Format >> Display.
+..
+
+new SyncAnalytics:
+    @ >> user.
+    (user & "age") >> Get >> age.
+    ("ANALYTICS: Recorded new user registration (Age: {})." & age) >> Format >> Display.
+..
+
+new ProcessUserSync:
+    @ >> user.
+    (user & "username") >> Get >> uname.
+    ("--- Syncing User {} ---" & uname) >> Format >> Display.
+    user >> Fork:
+        @ >> SyncPrimary.
+        @ >> SyncSearchIndex.
+        @ >> SyncAnalytics.
+    ..
+..
+
+[
+    {"username": "alice99", "age": 28},
+    {"username": "bob_builder", "age": 45},
+    {"username": "charlie_z", "age": 19}
+] >> new_users.
+
+new_users >> Map:
+    @ >> ProcessUserSync.
+.. >> dummy.
+
+"All databases synchronized." >> Display.

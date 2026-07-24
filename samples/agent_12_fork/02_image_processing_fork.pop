@@ -1,0 +1,29 @@
+new ApplyGrayscale:
+    @ >> img.
+    "Applying grayscale to image..." >> Display.
+    (img & "color" & "gray") >> Replace >> result.
+    ("Grayscale filter done: {}" & result) >> Format >> Display.
+..
+
+new ApplyBlur:
+    @ >> img.
+    "Applying blur filter..." >> Display.
+    (img & "sharp" & "blurred") >> Replace >> result.
+    ("Blur filter done: {}" & result) >> Format >> Display.
+..
+
+new ApplyEdgeDetection:
+    @ >> img.
+    "Running edge detection..." >> Display.
+    ("Edge map for {} generated." & img) >> Format >> Display.
+..
+
+"image_data_color_sharp.png" >> img_src.
+
+img_src >> Fork:
+    @ >> ApplyGrayscale.
+    @ >> ApplyBlur.
+    @ >> ApplyEdgeDetection.
+..
+
+"Image processing fork complete." >> Display.

@@ -1,0 +1,28 @@
+[
+    "INFO|Success",
+    "ERROR|Failed",
+    "MALFORMED_LOG_WITHOUT_PIPE"
+] >> logs.
+
+new ParseLog:
+    @ >> msg.
+    (msg & "|") >> Contains >> check:
+        is false:
+            ("Simulated error" & "div") >> Split >> dummy.
+            dummy[10] >> dummy2.
+        else:
+            (msg & "|") >> Split >> parts.
+            parts[1].
+    ..
+..
+
+"Processing logs with error handling:" >> Display.
+logs >!> @log:
+    log >> ParseLog >> catch:
+        @ >> err.
+        "Failed to parse log: " >+> log >> Display.
+        "Error info: " >+> err["message"] >> Display.
+        "null"
+    .. >> result.
+    result >> Display.
+..

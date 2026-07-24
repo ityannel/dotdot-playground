@@ -1,0 +1,17 @@
+[
+    {"order_id": "ORD-001", "item": "MacBook Pro",  "price": 280000, "qty": 1, "status": "completed"},
+    {"order_id": "ORD-002", "item": "iPad Air",     "price": 98000,  "qty": 2, "status": "completed"},
+    {"order_id": "ORD-003", "item": "破損注文データ", "price": "invalid_number", "qty": 1, "status": "pending"},
+    {"order_id": "ORD-004", "item": "AirPods Pro",  "price": 38000,  "qty": 3, "status": "completed"},
+    {"order_id": "ORD-005", "item": "キャンセル商品", "price": 12000,  "qty": 1, "status": "cancelled"}
+] >> raw_orders.
+
+raw_orders >> Map(ord):
+    (ord, "subtotal", (Num(ord::price) * ord::qty >> Catch(err): 0 ..)) >> Set
+.. >> processed_orders.
+
+processed_orders >> Filter(ord):
+    ord::status == "completed"
+.. >> valid_orders.
+
+valid_orders >> Display.

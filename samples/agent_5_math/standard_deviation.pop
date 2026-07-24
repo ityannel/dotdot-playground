@@ -1,0 +1,53 @@
+// 1. standard_deviation.pop
+// Calculates mean, variance, and standard deviation of a dataset.
+
+new Sqrt:
+    @ >> num.
+    num >> check:
+        is < 0: null.
+        is 0: 0.
+        else:
+            num / 2.0 >> guess.
+            (1 & 15) >> Range >> Map:
+                (guess + (num / guess)) / 2.0 >> guess.
+                guess.
+            ..
+            guess.
+    ..
+..
+
+new Mean:
+    @ >> arr.
+    arr >> Length >> len.
+    len >> check:
+        is 0: 0.
+        else:
+            arr >> Reduce:
+                @[0] + @[1].
+            .. >> sum.
+            sum / len.
+    ..
+..
+
+new StdDev:
+    @ >> arr.
+    arr >> Mean >> mean_val.
+    arr >> Length >> len.
+    
+    arr >> Map:
+        @ - mean_val >> diff.
+        diff * diff.
+    .. >> sq_diffs.
+    
+    sq_diffs >> Reduce:
+        @[0] + @[1].
+    .. >> sum_sq_diff.
+    
+    (sum_sq_diff / len) >> variance.
+    variance >> Sqrt.
+..
+
+[10.0, 12.0, 23.0, 23.0, 16.0, 23.0, 21.0, 16.0] >> data.
+"Dataset: " >+> (data >> ToJson) >> Display.
+data >> StdDev >> std_dev.
+"Standard Deviation: " >+> (std_dev >> Str) >> Display.

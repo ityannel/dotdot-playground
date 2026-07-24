@@ -1,0 +1,39 @@
+[
+    {"order_id": "ORD-001", "item": "MacBook Pro",  "price": 280000, "qty": 1, "status": "completed"},
+    {"order_id": "ORD-002", "item": "iPad Air",     "price": 98000,  "qty": 2, "status": "completed"},
+    {"order_id": "ORD-003", "item": "破損注文データ", "price": "invalid_number", "qty": 1, "status": "pending"},
+    {"order_id": "ORD-004", "item": "AirPods Pro",  "price": 38000,  "qty": 3, "status": "completed"},
+    {"order_id": "ORD-005", "item": "キャンセル商品", "price": 12000,  "qty": 1, "status": "cancelled"}
+] >> raw_orders.
+
+// ① 既存プロパティをすべて保持しつつ、subtotal だけを安全追加！
+raw_orders >> Map(ord):
+    (ord, "subtotal", (Num(ord::price) * ord::qty >> Catch(err): 0 ..)) >> Set
+.. >> processed_orders.
+
+// ② completed かつ subtotal > 0 の有効注文を抽出
+processed_orders >> Filter(ord):
+    ord::status == "completed" && ord::subtotal > 0
+.. >> valid_orders.
+
+// ③ 高額順ソート
+valid_orders >> Sort(ord):
+    -ord::subtotal
+.. >> sorted_orders.
+
+// ④ 各注文の出力
+"==================================================" >> Display.
+"🛒 リアルタイムEC決済・売上分析ダッシュボード" >> Display.
+"==================================================" >> Display.
+"💎 【有効注文・売上額ランキング (降順)】" >> Display.
+
+sorted_orders >> Map(ord):
+    " 📦 {ord::order_id} ({ord::item}): ¥{ord::subtotal}" >> Display.
+..
+
+// ⑤ 総売上集計
+valid_orders >> Map(ord): ord::subtotal .. >> Sum >> total_revenue.
+
+"--------------------------------------------------" >> Display.
+"💰 本日の総売上合計: ¥{total_revenue}" >> Display.
+"==================================================" >> Display.

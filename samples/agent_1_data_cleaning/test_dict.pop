@@ -1,0 +1,33 @@
+[
+    {"name": "Alice", "age": 25},
+    {"age": 30},
+    {"name": "Bob"}
+] >> records.
+
+records >> Map:
+    @ >> record.
+    
+    (record & "name") >> Get >> catch:
+        null >> Return. 
+    .. >> name_val.
+    
+    name_val >> check:
+        is null:
+            (record & "name" & "Unknown") >> Set >> record.
+    ..
+
+    (record & "age") >> Get >> catch:
+        null >> Return.
+    .. >> age_val.
+    
+    age_val >> check:
+        is null:
+            (record & "age" & 0) >> Set >> record.
+    ..
+    
+    record >> Return.
+.. >> clean_records.
+
+"Cleaned: " >> msg.
+(clean_records >> ToJson) >+> msg.
+msg >> Display.

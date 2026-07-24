@@ -1,0 +1,8 @@
+9 >> m.
+
+m >> check:
+    is [4, 6, 9, 11]:
+        "30 days" >> Display.
+    is 10:
+        "31 days" >> Display.
+..

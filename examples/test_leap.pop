@@ -1,0 +1,11 @@
+// Leap Year Test in Dot dot
+
+[2000, 2024, 1900, 2023] >> do each:
+    @ >> year.
+    (year % 400 == 0) || (year % 4 == 0 && year % 100 != 0) >> check:
+        is true:
+            "{0}年はうるう年です (1)" & year >> Format >> Display.
+        else:
+            "{0}年は平年です (0)" & year >> Format >> Display.
+    ..
+..

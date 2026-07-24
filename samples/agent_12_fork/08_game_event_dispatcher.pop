@@ -1,0 +1,39 @@
+new UpdatePlayerHealth:
+    @ >> event.
+    (event & "damage") >> Get >> damage.
+    ("PLAYER: Took {} damage!" & damage) >> Format >> Display.
+..
+
+new PlaySoundEffect:
+    @ >> event.
+    (event & "sound") >> Get >> sound.
+    ("AUDIO: Playing sound '{}'..." & sound) >> Format >> Display.
+..
+
+new SpawnParticles:
+    @ >> event.
+    (event & "effect") >> Get >> fx.
+    ("VFX: Spawning {} particles at impact location." & fx) >> Format >> Display.
+..
+
+new DispatchGameEvent:
+    @ >> event.
+    (event & "name") >> Get >> name.
+    ("--- Event: {} ---" & name) >> Format >> Display.
+    event >> Fork:
+        @ >> UpdatePlayerHealth.
+        @ >> PlaySoundEffect.
+        @ >> SpawnParticles.
+    ..
+..
+
+[
+    {"name": "Explosion", "damage": 50, "sound": "boom.wav", "effect": "fire_sparks"},
+    {"name": "Poison Arrow", "damage": 15, "sound": "thwack.wav", "effect": "green_mist"}
+] >> game_events.
+
+game_events >> Map:
+    @ >> DispatchGameEvent.
+.. >> dummy.
+
+"Game events dispatched." >> Display.

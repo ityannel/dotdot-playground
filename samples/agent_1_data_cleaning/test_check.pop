@@ -1,0 +1,7 @@
+[100] >> Filter:
+    @ >> Type >> Display.
+    @ >> check:
+        is < 0: false >> Return.
+    ..
+    true >> Return.
+.. >> dummy.

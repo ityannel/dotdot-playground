@@ -1,0 +1,6 @@
+(3 & 4) >> Array >> my_array2d.
+my_array2d >> Display.
+(2 & 3 & 4) >> Array >> my_array3d.
+my_array3d >> Display.
+5 >> Array >> my_array1d.
+my_array1d >> Display.

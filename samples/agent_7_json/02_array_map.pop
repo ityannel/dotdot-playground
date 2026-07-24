@@ -1,0 +1,10 @@
+// 02_array_map.pop
+"[{\"id\": 1, \"status\": \"active\"}, {\"id\": 2, \"status\": \"inactive\"}]" >> payload.
+payload >> FromJson >> arr.
+
+arr >> Map:
+    (@ & "status") >> Get.
+.. >> statuses.
+
+statuses >> ToJson >> statuses_json.
+"Statuses: " >+> statuses_json >> Display.

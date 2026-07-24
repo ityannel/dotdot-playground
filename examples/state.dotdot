@@ -1,0 +1,15 @@
+50 >> getter.
+50 >> poppop.
+
+poppop >> check:
+    is getter:
+        "getterとおなじです。" >> Display.
+    is setter:
+        "setterとおなじです。" >> Display.
+    is 50:
+        "50です。" >> Display.
+    is > 50:
+        "50より大きいです。" >> Display.
+    else: 
+        "50以下です。" >> Display.
+    ..

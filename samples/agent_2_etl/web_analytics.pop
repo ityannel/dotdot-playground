@@ -1,0 +1,46 @@
+// web_analytics.pop
+[
+    {"ip": "192.168.1.1", "page": "/home", "time": 10},
+    {"ip": "192.168.1.2", "page": "/about", "time": 45},
+    {"ip": "192.168.1.1", "page": "/contact", "time": 20},
+    {"ip": "192.168.1.3", "page": "/home", "time": 15},
+    {"ip": "192.168.1.2", "page": "/home", "time": 5},
+    {"ip": "192.168.1.4", "page": "/products", "time": 120}
+] >> visits.
+
+{} >> page_views.
+{} >> page_times.
+[] >> unique_pages.
+
+visits >!> @v:
+    v["page"] >> p.
+    v["time"] >> t.
+    
+    (unique_pages & p) >> Contains >> has_p.
+    has_p >> check:
+        is false:
+            p >+> unique_pages.
+        else:
+            0 >> n.
+    ..
+
+    (page_views & p) >> Contains >> has_v.
+    has_v >> check:
+        is true:
+            (page_views & p) >> Get >> views.
+            (page_views & p & (views + 1)) >> Set >> page_views.
+            (page_times & p) >> Get >> times.
+            (page_times & p & (times + t)) >> Set >> page_times.
+        else:
+            (page_views & p & 1) >> Set >> page_views.
+            (page_times & p & t) >> Set >> page_times.
+    ..
+..
+
+"Page Analytics:" >> Display.
+unique_pages >!> @p:
+    (page_views & p) >> Get >> views.
+    (page_times & p) >> Get >> total_time.
+    (total_time / views) >> avg_time.
+    $"Page: {p} | Views: {views} | Avg Time: {avg_time} s" >> Display.
+..

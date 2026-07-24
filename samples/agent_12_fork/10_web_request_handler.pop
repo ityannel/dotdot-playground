@@ -1,0 +1,41 @@
+new MiddlewareAuth:
+    @ >> req.
+    (req & "token") >> Get >> token.
+    token >> check:
+        is "valid_token_123": "AUTH: Token validated successfully." >> Display.
+        else: "AUTH: Invalid token! Request denied." >> Display.
+    ..
+..
+
+new MiddlewareRateLimit:
+    @ >> req.
+    (req & "ip") >> Get >> ip.
+    ("RATELIMIT: Checking request rate for IP {}..." & ip) >> Format >> Display.
+..
+
+new MiddlewareLogger:
+    @ >> req.
+    (req & "endpoint") >> Get >> ep.
+    ("LOGGER: Request received for endpoint '{}'." & ep) >> Format >> Display.
+..
+
+new HandleRequest:
+    @ >> req.
+    "--- New Incoming Web Request ---" >> Display.
+    req >> Fork:
+        @ >> MiddlewareAuth.
+        @ >> MiddlewareRateLimit.
+        @ >> MiddlewareLogger.
+    ..
+..
+
+[
+    {"ip": "192.168.1.10", "endpoint": "/api/users", "token": "valid_token_123"},
+    {"ip": "10.0.0.5", "endpoint": "/api/admin", "token": "expired_token"}
+] >> requests.
+
+requests >> Map:
+    @ >> HandleRequest.
+.. >> dummy.
+
+"All web requests processed by middleware." >> Display.

@@ -1,0 +1,25 @@
+// Test bracket index access syntax in Dot dot
+
+[
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0]
+] >> date.
+
+// Assign 15 directly to date[2][4]
+15 >> date[2][4].
+
+// Read date[2][4]
+date[2][4] >> Display.
+
+// Read row 2
+date[2] >> Display.
+
+// Use variables for index
+2 >> row.
+4 >> col.
+99 >> date[row][col].
+date[2][4] >> Display.

@@ -1,0 +1,9 @@
+// 01_basic_parse.pop
+"{\"name\": \"Alice\", \"age\": 30}" >> json_str.
+json_str >> FromJson >> parsed.
+
+(parsed & "name") >> Get >> name.
+(parsed & "age") >> Get >> age.
+
+("User Name: %s, Age: %s" & name & age) >> Format >> msg.
+msg >> Display.

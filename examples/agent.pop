@@ -1,0 +1,45 @@
+"==========================================" >> Display.
+"    🤖 Dot dot Autonomous Agent           " >> Display.
+"==========================================" >> Display.
+"Type 'exit' to quit." >> Display.
+
+// 1. 初期状態（会話履歴）
+[] >> loop:
+    history.
+    
+    // 2. ユーザー入力を受け取り、終了判定
+    "You: " >> Input >> user_text.
+    
+    user_text >> check:
+        is @ == "exit":
+            Break.
+    ..
+    
+    // 3. ユーザー発言を履歴に追加
+    {"role": "user", "content": user_text} >> user_msg.
+    history & user_msg >> Append >> history_with_user.
+    
+    // 4. APIリクエスト用JSONの作成
+    {"model": "mock-ai", "messages": history_with_user} >> ToJson >> payload.
+    {"Content-Type": "application/json"} >> headers.
+    
+    // 5. モックサーバーへ POST 通信
+    "http://localhost:11434/v1/chat/completions" & headers & payload >> PostFetch >> catch:
+        err.
+        // サーバーが落ちている場合などのエラー処理
+        {"choices": [{"message": {"role": "assistant", "content": "Error: Could not connect to AI server. Please start mock_llm.py"}}]} >> ToJson.
+    .. >> FromJson >> response.
+    
+    // 6. AIの返答を抽出して表示
+    response >> @.choices >> choices.
+    choices & 0 >> Get >> top_choice.
+    top_choice >> @.message >> ai_msg.
+    ai_msg >> @.content >> ai_content.
+    
+    "🤖 AI: {0}" & ai_content >> Format >> Display.
+    
+    // 7. AI発言を履歴に追加し、次のループ周回へ渡す（これが次の @ になる）
+    history_with_user & ai_msg >> Append.
+..
+
+"\nAgent terminated." >> Display.

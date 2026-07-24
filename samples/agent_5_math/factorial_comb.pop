@@ -1,0 +1,38 @@
+// 7. factorial_comb.pop
+// Calculates factorials, permutations, and combinations.
+
+new Factorial:
+    @ >> check:
+        is <= 1: 1.
+        else:
+            (1 & @) >> Range >> Reduce:
+                @[0] * @[1].
+            ..
+    ..
+..
+
+new Permutation:
+    @ >> args.
+    args[0] >> Factorial >> n_fact.
+    (args[0] - args[1]) >> Factorial >> nr_fact.
+    n_fact / nr_fact.
+..
+
+new Combination:
+    @ >> args.
+    (args[0] & args[1]) >> Permutation >> p.
+    args[1] >> Factorial >> r_fact.
+    p / r_fact.
+..
+
+5 >> Factorial >> f5.
+"5! = " >> out1.
+(f5 >> Str) >+> out1 >> Display.
+
+(5 & 3) >> Permutation >> p53.
+"5 P 3 = " >> out2.
+(p53 >> Str) >+> out2 >> Display.
+
+(5 & 3) >> Combination >> c53.
+"5 C 3 = " >> out3.
+(c53 >> Str) >+> out3 >> Display.

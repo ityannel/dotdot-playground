@@ -1,0 +1,10 @@
+new IsNotNull:
+    @ >> check:
+        is null: false >> Return.
+    ..
+    true >> Return.
+..
+
+["Data1", null, "Data2", null, "Data3"] >> raw_data.
+raw_data >-> IsNotNull >> clean_data.
+clean_data >> Display.

@@ -1,0 +1,33 @@
+"==========================================" >> Display.
+"      🎬 iTunes Movie Search App          " >> Display.
+"==========================================" >> Display.
+
+"Please enter a movie keyword (e.g. matrix, batman): " >> Input >> term.
+
+"Searching for '{0}'..." & term >> Format >> Display.
+"https://itunes.apple.com/search?term={0}&entity=movie&limit=3" & term >> Format >> url.
+
+url >> Fetch >> catch:
+    err.
+    {"results": []} >> ToJson. // 失敗時は空の結果を返す
+.. >> FromJson >> data.
+
+data & "results" >> Get >> results.
+
+"------------------------------------------" >> Display.
+
+results >> Length >> count.
+"Found {0} movies!" & count >> Format >> Display.
+
+results >> do each:
+    @ & "trackName" >> Get >> title.
+    @ & "primaryGenreName" >> Get >> genre.
+    @ & "releaseDate" >> Get >> date.
+    
+    // 日付文字列 (例: "1999-03-31T08:00:00Z") の先頭4文字を切り出して「年」にする
+    date & 0 & 4 >> Slice >> year.
+    
+    "🎥 {0} ({1}) - Genre: {2}" & title & year & genre >> Format >> Display.
+..
+
+"==========================================" >> Display.

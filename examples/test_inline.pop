@@ -1,0 +1,16 @@
+// テスト: インラインブロック構文
+"--- インライン Map ---" >> Display.
+[1, 2, 3] >> Map: @ * 2 .. >> Display.
+
+"--- インライン Filter ---" >> Display.
+[1, 2, 3, 4, 5] >> Filter: @ % 2 == 0 .. >> Display.
+
+"--- インライン Sort ---" >> Display.
+[{"id": 3}, {"id": 1}, {"id": 2}] >> Sort: @::id .. >> Display.
+
+"--- 複数行ブロック（従来通り動くか確認） ---" >> Display.
+[10, 20, 30] >> Map @val:
+    @val + 1 >> Return.
+.. >> Display.
+
+"--- 完了 ---" >> Display.

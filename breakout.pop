@@ -1,0 +1,76 @@
+// =========================================================
+// 🍿 PopPop 2D アスキーグラフィックス・ブロック崩しゲーム
+// =========================================================
+
+"==================================================" >> Display.
+"🎮 PopPop リアルタイム 2D ブロック崩し スタート！" >> Display.
+"🕹️ 操作方法: [A]キー = 左移動, [D]キー = 右移動, [Q]キー = 終了" >> Display.
+"==================================================" >> Display.
+
+{
+    "score": 0,
+    "ball_x": 10,
+    "ball_y": 2,
+    "dx": 1,
+    "dy": 1,
+    "paddle_x": 8,
+    "paddle_w": 6,
+    "blocks": 8
+} >> Dict >> state.
+
+// リアルタイム 2D 描画ゲームループ (100フレーム)
+Range(100) >> Loop:
+    // ① 画面を全消去（固定位置での2Dアニメーション描画）
+    Clear.
+
+    // ② キーボード入力検知
+    GetKey >> key_input.
+
+    // ③ [A]キー / [D]キー でパドル位置変更
+    state::paddle_x >> p_x.
+    key_input >> check:
+        is == "left": p_x - 1
+        is == "right": p_x + 1
+        else: p_x
+    .. >> new_p_x.
+
+    // ④ ボール物理移動と壁・床バウンス
+    state::ball_x + state::dx >> new_x.
+    state::ball_y + state::dy >> new_y.
+
+    new_x >> check:
+        is @ <= 0: 1
+        is @ >= 23: -1
+        else: state::dx
+    .. >> new_dx.
+
+    new_y >> check:
+        is @ <= 0: 1
+        is @ >= 5: -1
+        else: state::dy
+    .. >> new_dy.
+
+    // ⑤ 新しいゲーム状態の辞書構築
+    {
+        "score": state::score + 10,
+        "ball_x": new_x,
+        "ball_y": new_y,
+        "dx": new_dx,
+        "dy": new_dy,
+        "paddle_x": new_p_x,
+        "paddle_w": 6,
+        "blocks": state::blocks
+    } >> Dict >> state.
+
+    // ⑥ 2D ASCII グラフィックフレームをレンダリングして画面へPop！
+    state >> RenderFrame >> Display.
+
+    // ⑦ 0.08秒インターバル (秒間12コマの滑らかなアニメーション)
+    0.08 >> Sleep.
+..
+
+Clear.
+"==================================================" >> Display.
+"🎉 GAME OVER!" >> Display.
+"🏆 最終スコア: {state::score} PTS" >> Display.
+"==================================================" >> Display.

@@ -1,0 +1,4 @@
+"Result: " >> msg.
+"[" >+> msg.
+"]" >+> msg.
+msg >> Display.

@@ -1,0 +1,8 @@
+["a@b", "c@d"] >> Map:
+    (@ & "@") >> Split >> parts.
+    parts[1] >> Return.
+.. >> res.
+
+"Result: " >> msg.
+(res >> ToJson) >+> msg.
+msg >> Display.

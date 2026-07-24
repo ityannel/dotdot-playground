@@ -1,0 +1,9 @@
+[100, -50, 200, null, 50] >> transactions.
+
+transactions >> Filter:
+    @ >> ToJson >> Display.
+    @ >> check:
+        is null: false >> Return.
+    ..
+    true >> Return.
+.. >> valid_tx.

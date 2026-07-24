@@ -1,0 +1,36 @@
+// 06_keyword_extractor.pop
+// Extracts keywords from a text by filtering out common stop words.
+
+"PopPop is a great programming language for data flow and text processing. It makes pipelines easy." >> document.
+
+// Define a list of stop words
+["is", "a", "for", "and", "it", "to", "the", "in", "of"] >> stop_words.
+
+// Clean the text and convert to lowercase
+(document & "." & "") >> Replace >> c1.
+(c1 & "," & "") >> Replace >> clean_doc.
+(clean_doc & " ") >> Split >> words.
+
+// Filter out the stop words
+words >> Filter @w:
+    @w >> Lowercase >> lw.
+    (stop_words & lw) >> Contains >> is_stop.
+    is_stop >> check:
+        is true: false >> Return. // It is a stop word, discard
+        else: true >> Return.    // Not a stop word, keep
+    ..
+.. >> keywords.
+
+// Remove empty strings if any
+keywords >> Filter @k:
+    @k >> Length >> l.
+    l >> check:
+        is > 0: true >> Return.
+        else: false >> Return.
+    ..
+.. >> final_keywords.
+
+"--- Keyword Extraction ---" >> Display.
+("Original: " + document) >> Display.
+"Keywords: " >> Display.
+final_keywords >> ToJson >> Display.

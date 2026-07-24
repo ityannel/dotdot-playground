@@ -1,0 +1,8 @@
+[1, 2, 3, 4] >> Filter:
+    @ >> check:
+        is > 2: true >> Return.
+    ..
+    false >> Return.
+.. >> res.
+
+("Result: %s" & (res >> ToJson)) >> Format >> Display.

@@ -1,0 +1,22 @@
+"ERROR: disk full\nWARNING: cpu high\nINFO: ok\nERROR: timeout" >> raw_data.
+(raw_data & "\n") >> Split >> logs.
+
+new IsError:
+    (@ & "ERROR") >> Contains >> Return.
+..
+new IsWarn:
+    (@ & "WARNING") >> Contains >> Return.
+..
+
+logs >> Filter @log:
+    log >> IsError.
+.. >> errors.
+
+logs >> Filter @log:
+    log >> IsWarn.
+.. >> warns.
+
+"Errors found: " >> Display. 
+errors >> Display.
+"Warnings found: " >> Display. 
+warns >> Display.

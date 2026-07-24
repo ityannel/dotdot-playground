@@ -1,0 +1,28 @@
+[
+    {"id": 1, "name": "arthur", "class": "warrior", "hp": "100", "items": [10, 20, 5], "status": "poisoned", "_hidden": 999},
+    {"id": 2, "name": "merlin", "class": "mage",    "hp": 50,    "items": [50],        "status": "normal",   "_hidden": 200},
+    {"id": 3, "name": "goblin", "class": "monster", "hp": "NaN", "items": [],          "status": "normal",   "_hidden": 10}
+] >> raw_data.
+
+raw_data >> Map(char):
+    char >> Update:
+        // 1. Calculate total item weight using Sum
+        char::items >> Sum >> Catch(e): 0 .. >> ::total_weight.
+        
+        // 2. Complex title logic based on class (Drop if no title needed)
+        ::title >> check:
+            is char::class == "warrior": "Knight".
+            is char::class == "mage": "Archmage".
+            else: Drop.
+        ..
+        
+        // 3. Robust HP calculation + Status effect damage
+        ::hp >> Num >> Catch(e): 0 .. >> check:
+            is char::status == "poisoned": @ - 15.
+            else: @.
+        ..
+        
+        // 4. Clean up unnecessary fields for the public API
+        (::_hidden, ::items, ::status, ::class) >> Drop.
+    ..
+.. >> Display.

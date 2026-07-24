@@ -1,0 +1,22 @@
+"Math Quiz!" >> Display.
+0 >> score.
+
+new Question:
+    (1 & 20) >> Random >> a.
+    (1 & 20) >> Random >> b.
+    (a & b) >> Add >> ans.
+    ("What is %s + %s? (or 0 to quit): " & a & b) >> Format >> Input >> Int >> guess.
+    guess >> check:
+        is 0:
+            ("Game over. Score: %s" & score) >> Format >> Display.
+        is == ans:
+            "Correct!" >> Display.
+            (score & 1) >> Add >> score.
+            null >> Question.
+        else:
+            "Wrong!" >> Display.
+            null >> Question.
+    ..
+..
+
+null >> Question.

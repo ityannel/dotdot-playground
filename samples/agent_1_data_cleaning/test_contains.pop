@@ -1,0 +1,2 @@
+({"a": 1} & "a") >> Contains >> Display.
+({"a": 1} & "b") >> Contains >> Display.

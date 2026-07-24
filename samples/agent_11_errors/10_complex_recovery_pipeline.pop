@@ -1,0 +1,22 @@
+new CalculateScore:
+    @ >> data.
+    data["kills"] >> kills.
+    data["deaths"] >> deaths.
+    (kills / deaths).
+..
+
+new SafeScore:
+    @ >> player.
+    player >> CalculateScore >> catch:
+        @ >> err.
+        "Error in calculating score, returning 0" >> Display.
+        0 >> Return.
+    ..
+..
+
+[{"kills": 10, "deaths": 2}, {"kills": 5, "deaths": 0}, {"kills": 20, "deaths": 5}] >> Map:
+    @ >> SafeScore >> Return.
+.. >> scores.
+
+"Player scores:" >> Display.
+scores >> Display.

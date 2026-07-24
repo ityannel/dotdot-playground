@@ -1,0 +1,21 @@
+// Dot dot お天気アプリ (Weather App)
+// 東京の現在の天気を Open-Meteo API から取得して表示します
+
+"🌤️ お天気情報を取得中..." >> Display.
+
+// 1. APIからJSONデータをFetchして、辞書に変換
+"https://api.open-meteo.com/v1/forecast?latitude=35.6895&longitude=139.6917&current_weather=true" >> Fetch >> FromJson >> data.
+
+// 2. 階層になったデータ(current_weather)を取り出す
+data & "current_weather" >> Get >> current.
+
+// 3. 必要な値（気温、風速）を取り出す
+current & "temperature" >> Get >> temp.
+current & "windspeed" >> Get >> wind.
+
+// 4. Format関数を使って結果をきれいに表示
+"📍 東京の現在の天気情報" >> Display.
+"気温: {0}℃" & temp >> Format >> Display.
+"風速: {1} m/s" & temp & wind >> Format >> Display.
+
+"お出かけの際は気をつけて！" >> Display.

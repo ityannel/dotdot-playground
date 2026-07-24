@@ -1,0 +1,36 @@
+// log_parser.pop
+[
+    "INFO: Server started",
+    "ERROR: DB_CONNECTION_FAILED at 10:00",
+    "WARN: High memory usage",
+    "ERROR: TIMEOUT at 10:05",
+    "INFO: User logged in",
+    "ERROR: DB_CONNECTION_FAILED at 10:15",
+    "ERROR: NULL_POINTER at 10:20"
+] >> logs.
+
+logs >> Filter @log:
+    (log & "ERROR:") >> Contains >> Return.
+.. >> error_logs.
+
+error_logs >> Map @err:
+    (err & " ") >> Split >> parts.
+    parts[1] >> Return.
+.. >> error_types.
+
+{} >> error_counts.
+error_types >!> @err_type:
+    (error_counts & err_type) >> Contains >> exists.
+    exists >> check:
+        is true:
+            (error_counts & err_type) >> Get >> cnt.
+            (error_counts & err_type & (cnt + 1)) >> Set >> error_counts.
+        else:
+            (error_counts & err_type & 1) >> Set >> error_counts.
+    ..
+..
+
+error_types >> Length >> len.
+$"Total Errors Found: {len}" >> Display.
+"Error Frequencies:" >> Display.
+error_counts >> ToJson >> Display.

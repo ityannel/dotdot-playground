@@ -1,0 +1,27 @@
+"Coin Flip Streak!" >> Display.
+{"0": "heads", "1": "tails"} >> sides.
+0 >> streak.
+
+new FlipLoop:
+    (0 & 1) >> Random >> Str >> coin_idx.
+    (sides & coin_idx) >> Get >> coin.
+    
+    "Guess heads or tails (or 'quit'): " >> Input >> guess.
+    guess >> check:
+        is "quit":
+            ("Final streak: %s" & streak) >> Format >> Display.
+            Return.
+        is coin:
+            "Correct!" >> Display.
+            (streak & 1) >> Add >> streak.
+            ("Current streak: %s" & streak) >> Format >> Display.
+            null >> FlipLoop.
+        else:
+            ("Wrong! It was %s" & coin) >> Format >> Display.
+            ("Streak ended at: %s" & streak) >> Format >> Display.
+            0 >> streak.
+            null >> FlipLoop.
+    ..
+..
+
+null >> FlipLoop.

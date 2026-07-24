@@ -1,0 +1,27 @@
+[
+    {"title": "PopPop Symphony",  "artist": "DotDot Band",   "plays": 1200000, "genre": "Pop",  "rating": 4.9},
+    {"title": "Async Pipeline",   "artist": "Pythonic",      "plays": 850000,  "genre": "Rock", "rating": 4.2},
+    {"title": "Broken Track",     "artist": "Unknown",       "plays": 500,     "genre": "Pop",  "rating": "invalid_rating"},
+    {"title": "Kernel Pop Beats", "artist": "MC Pipeline",   "plays": 2300000, "genre": "Pop",  "rating": 4.8},
+    {"title": "Slow Jazz Chill",  "artist": "Blue Note",     "plays": 450000,  "genre": "Jazz", "rating": 3.9}
+] >> raw_tracks.
+
+raw_tracks >> Map(Track):
+    (Track, "rating", (Track::rating >> Num >> Catch(err): 0.0 ..)) >> Set.
+.. >> Filter(Track):
+    Track::genre == "Pop" & Track::plays >= 1000000.
+.. >> Sort(Track):
+     -Track::plays.
+.. >> List >> newTracks.
+
+"==================================================" >> Display.
+"🎵 POPPOP GLOBAL MUSIC HITS CHART 🏆" >> Display.
+"==================================================" >> Display.
+
+newTracks >> Map:
+    "{@::title} ({@::artist}) - {@::plays} played [★{@::rating}]" >> Display.
+..
+
+"--------------------------------------------------" >> Display.
+"⭐ ヒット楽曲平均評価点: {newTracks >> Map: @::rating .. >> Average}" >> Display.
+"==================================================" >> Display.

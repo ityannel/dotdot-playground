@@ -1,0 +1,23 @@
+// script_03_apply_discount.pop
+[
+    {"name": "Shoes", "price": 5000, "category": "apparel"},
+    {"name": "Hat", "price": 1500, "category": "apparel"},
+    {"name": "Watch", "price": 12000, "category": "accessories"}
+] >> cart.
+
+cart >> Map:
+    @ >> item.
+    item["category"] >> check:
+        is "apparel":
+            (item["price"] * 0.9) >> discounted_price.
+            (item & "price" & discounted_price) >> Set >> Return.
+        else:
+            item >> Return.
+    ..
+.. >> discounted_cart.
+
+discounted_cart >> Map:
+    @ >> it.
+    (["Item: ", it["name"], " - Price: ", (it["price"] >> Str)] & "") >> Join >> Display.
+    it >> Return.
+.. >> discard.

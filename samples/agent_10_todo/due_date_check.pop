@@ -1,0 +1,25 @@
+// due_date_check.pop
+// Combines Filter and Map for due date logic
+
+[] >> tasks.
+{"title": "Pay bills", "due": 20260720} >+> tasks.
+{"title": "Buy groceries", "due": 20260725} >+> tasks.
+{"title": "Renew license", "due": 20260718} >+> tasks.
+
+20260722 >> current_date.
+
+// Filter overdue tasks
+tasks >> Filter:
+    @["due"] < current_date.
+.. >> overdue_tasks.
+
+"--- Overdue Tasks ---" >> Display.
+overdue_tasks >> Display.
+
+// Map to add warning
+overdue_tasks >> Map:
+    (@ & "warning" & "OVERDUE!") >> Set.
+.. >> warned_tasks.
+
+"--- Warned Tasks ---" >> Display.
+warned_tasks >> Display.

@@ -1,0 +1,32 @@
+new WriteToConsole:
+    @ >> msg.
+    ("[CONSOLE] {}" & msg) >> Format >> Display.
+..
+
+new SendToServer:
+    @ >> msg.
+    ("[NETWORK] Sending to server: {}" & msg) >> Format >> Display.
+..
+
+new ArchiveToFile:
+    @ >> msg.
+    ("[FILE] Archiving: {}" & msg) >> Format >> Display.
+..
+
+new ProcessLog:
+    @ >> log_entry.
+    log_entry >> Fork:
+        @ >> WriteToConsole.
+        @ >> SendToServer.
+        @ >> ArchiveToFile.
+    .. >> result.
+    result >> Return.
+..
+
+["ERROR: DB Connection Lost", "INFO: User login", "WARN: High memory usage"] >> logs.
+
+logs >> Map:
+    @ >> ProcessLog.
+.. >> dummy.
+
+"Log distribution complete." >> Display.

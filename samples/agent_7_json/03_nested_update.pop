@@ -1,0 +1,12 @@
+// 03_nested_update.pop
+"{\"user\": {\"profile\": {\"theme\": \"dark\"}}}" >> json_str.
+json_str >> FromJson >> root.
+
+(root & "user") >> Get >> user_dict.
+(user_dict & "profile") >> Get >> profile_dict.
+
+(profile_dict & "theme" & "light") >> Set >> updated_profile.
+(user_dict & "profile" & updated_profile) >> Set >> updated_user.
+(root & "user" & updated_user) >> Set >> updated_root.
+
+updated_root >> ToJson >> Display.

@@ -1,0 +1,15 @@
+new Factorial:
+    @ >> n.
+    "n is " >+> (n >> Str) >> Display.
+    n >> check:
+        is <= 1: 1.
+        else:
+            n - 1 >> Factorial >> prev.
+            "n is " >+> (n >> Str) >+> ", prev is " >+> (prev >> Str) >> Display.
+            n * prev.
+    ..
+..
+
+5 >> Factorial >> f5.
+"5! = " >> out1.
+(f5 >> Str) >+> out1 >> Display.

@@ -1,0 +1,10 @@
+// 04_api_filter.pop
+"[{\"name\": \"A\", \"age\": 15}, {\"name\": \"B\", \"age\": 25}, {\"name\": \"C\", \"age\": 30}]" >> json_str.
+json_str >> FromJson >> users.
+
+users >> Filter:
+    (@ & "age") >> Get >> age.
+    age >= 20. // Returns boolean directly
+.. >> adults.
+
+adults >> ToJson >> Display.

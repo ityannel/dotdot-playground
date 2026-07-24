@@ -1,0 +1,27 @@
+[
+    "Connection from 192.168.1.1",
+    "Connection from invalid_ip",
+    "Connection from 10.0.0.5"
+] >> logs.
+
+new ExtractIP:
+    (@ & "from ") >> Split >> parts.
+    parts[1] >> ip.
+    ip >> Return.
+..
+
+logs >~> ExtractIP >> ips.
+
+ips >> Filter @ip:
+    (ip & ".") >> Split >> octets.
+    octets >> Length >> len.
+    len >> check:
+        is 4:
+            true >> Return.
+        else:
+            false >> Return.
+    ..
+.. >> valid_ips.
+
+"Valid IPs:" >> Display.
+valid_ips >> Display.

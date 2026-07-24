@@ -1,0 +1,15 @@
+["user1@example.com", "admin@test.org", "invalid-email"] >> emails.
+
+"--- Extracting Domains ---" >> Display.
+
+emails >> Map:
+    (@ & "@") >> Split >> parts.
+    parts >> Length >> check:
+        is 2: parts[1] >> Return.
+    ..
+    "invalid" >> Return.
+.. >> domains.
+
+"Domains: " >> msg.
+(domains >> ToJson) >+> msg.
+msg >> Display.

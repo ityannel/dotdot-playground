@@ -1,0 +1,46 @@
+// weather_etl.pop
+[
+    {"city": "Tokyo", "temp": 30, "humidity": 70},
+    {"city": "Osaka", "temp": 32, "humidity": 65},
+    {"city": "Sapporo", "temp": 22, "humidity": 50},
+    {"city": "Tokyo", "temp": 31, "humidity": 72},
+    {"city": "Okinawa", "temp": 35, "humidity": 80}
+] >> weather_data.
+
+weather_data >> Map @w:
+    w["temp"] >> Return.
+.. >> temps.
+
+weather_data >> Map @w:
+    w["humidity"] >> Return.
+.. >> hums.
+
+temps >> Reduce @acc @val:
+    acc >> check:
+        is > val: acc >> Return.
+        else: val >> Return.
+    ..
+.. >> highest_temp.
+
+hums >> Reduce @acc @val:
+    (acc + val) >> Return.
+.. >> total_hum.
+hums >> Length >> len.
+(total_hum / len) >> avg_hum.
+
+"Weather ETL Report" >> Display.
+$"Highest Temperature recorded: {highest_temp} C" >> Display.
+$"Average Humidity: {avg_hum} percent" >> Display.
+
+[] >> hot_cities.
+weather_data >!> @w:
+    w["temp"] >> check:
+        is > 30:
+            w["city"] >+> hot_cities.
+        else:
+            0 >> n.
+    ..
+..
+
+"Hot Cities (>30C):" >> Display.
+hot_cities >> Display.

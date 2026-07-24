@@ -1,0 +1,20 @@
+[
+    "User logged in",
+    "Data processed"
+] >> messages.
+
+new FormatLog:
+    @ >> msg.
+    null >> Now >> ts.
+    ts >> Str >> ts_str.
+    (ts_str & " ") >> Split >> ts_parts.
+    ts_parts[1] >> time_only.
+    "[" >+> time_only >+> "] " >+> msg >> Return.
+..
+
+messages >~> FormatLog >> formatted.
+
+"Formatted Logs:" >> Display.
+formatted >!> @log:
+    log >> Display.
+..

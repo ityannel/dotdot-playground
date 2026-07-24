@@ -1,0 +1,3 @@
+("Dot dot" & "Dot" & "ドット") >> Replace >> Display.
+("hello world" & " ") >> Split >> Display.
+([1, 2, 3] & ", ") >> Join >> Display.

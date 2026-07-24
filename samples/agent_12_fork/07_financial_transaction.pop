@@ -1,0 +1,46 @@
+new ValidateFraud:
+    @ >> tx.
+    (tx & "amount") >> Get >> amt.
+    amt >> check:
+        is > 10000:
+            "FRAUD ALERT: Transaction amount exceeds limits!" >> Display.
+        else:
+            "Fraud check passed." >> Display.
+    ..
+..
+
+new ProcessPayment:
+    @ >> tx.
+    (tx & "amount") >> Get >> amt.
+    (tx & "currency") >> Get >> cur.
+    ("PAYMENT: Processing {} {}..." & amt & cur) >> Format >> Display.
+..
+
+new UpdateLedger:
+    @ >> tx.
+    (tx & "id") >> Get >> tid.
+    ("LEDGER: Transaction {} added to general ledger." & tid) >> Format >> Display.
+..
+
+new HandleTransaction:
+    @ >> tx.
+    (tx & "id") >> Get >> tid.
+    ("--- Handling Transaction {} ---" & tid) >> Format >> Display.
+    tx >> Fork:
+        @ >> ValidateFraud.
+        @ >> ProcessPayment.
+        @ >> UpdateLedger.
+    ..
+..
+
+[
+    {"id": "TX9901", "amount": 250, "currency": "USD"},
+    {"id": "TX9902", "amount": 15000, "currency": "EUR"},
+    {"id": "TX9903", "amount": 15, "currency": "JPY"}
+] >> transactions.
+
+transactions >> Map:
+    @ >> HandleTransaction.
+.. >> dummy.
+
+"Financial transactions processed." >> Display.

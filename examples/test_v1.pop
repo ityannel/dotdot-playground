@@ -1,0 +1,41 @@
+// PopPop v1.0 - 究極のストリーム言語 テスト
+
+"=== 1. インラインブロック構文 ===" >> Display.
+
+// インライン Map
+[1, 2, 3] >> Map: @ * 10 .. >> Display.
+
+// インライン Filter
+[1, 2, 3, 4, 5, 6] >> Filter: @ % 2 == 0 .. >> Display.
+
+// インライン Sort
+[{"id": 3, "name": "C"}, {"id": 1, "name": "A"}, {"id": 2, "name": "B"}] >> Sort: @::id .. >> Display.
+
+// インライン Group
+[{"cat": "X", "v": 1}, {"cat": "Y", "v": 2}, {"cat": "X", "v": 3}] >> Group: @::cat .. >> Display.
+
+"=== 2. 複数行ブロック（従来通り） ===" >> Display.
+[10, 20, 30] >> Map @val:
+    @val + 1 >> Return.
+.. >> Display.
+
+"=== 3. >!> Debug（パイプラインの覗き穴） ===" >> Display.
+[1, 2, 3] >> Map: @ * 100 .. >!> Debug >> Map: @ + 1 .. >> Display.
+
+"=== 4. エラーパイプライン >~> ===" >> Display.
+"abc" >> Int >~> 0 >> Display.
+
+"=== 5. 無限ストリーム（Count + Take） ===" >> Display.
+(1 >> Count & 10) >> Take >> Display.
+
+"=== 6. check: is による排他マッチ ===" >> Display.
+85 >> check:
+    is >= 90: "S" >> Display.
+    is >= 70: "A" >> Display.
+    else:     "C" >> Display.
+..
+
+"=== 7. インラインブロックの連鎖 ===" >> Display.
+[5, 3, 8, 1, 9, 2] >> Filter: @ >= 3 .. >> Sort: @ .. >> Map: @ * 2 .. >> Display.
+
+"=== 全テスト完了 ===" >> Display.

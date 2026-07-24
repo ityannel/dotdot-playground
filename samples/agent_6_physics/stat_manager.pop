@@ -1,0 +1,26 @@
+new UpdateStat:
+    @ >> args.
+    args[0] >> char_stat.
+    args[1] >> event_type.
+    
+    event_type >> check:
+        is "level_up":
+            char_stat["hp"] + 20 >> new_hp.
+            (char_stat & "hp" & new_hp) >> Set >> char_stat.
+            char_stat["atk"] + 5 >> new_atk.
+            (char_stat & "atk" & new_atk) >> Set.
+        is "damage":
+            char_stat["hp"] - 15 >> new_hp.
+            (char_stat & "hp" & new_hp) >> Set.
+        else:
+            char_stat.
+    ..
+..
+
+{"name": "Hero", "hp": 100, "atk": 15} >> hero.
+(hero & "level_up") >> UpdateStat >> hero.
+
+hero >> Fork:
+    @["name"] >> Display.
+    @ >> ToJson >> Display.
+..

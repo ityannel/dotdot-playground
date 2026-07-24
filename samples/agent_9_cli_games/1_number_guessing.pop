@@ -1,0 +1,18 @@
+"Welcome to the Number Guessing Game!" >> Display.
+(1 & 100) >> Random >> target.
+
+new GameLoop:
+    "Guess a number between 1 and 100: " >> Input >> Int >> guess.
+    guess >> check:
+        is target:
+            "Congratulations! You guessed it!" >> Display.
+        is < target:
+            "Too low! Try again." >> Display.
+            null >> GameLoop.
+        is > target:
+            "Too high! Try again." >> Display.
+            null >> GameLoop.
+    ..
+..
+
+null >> GameLoop.

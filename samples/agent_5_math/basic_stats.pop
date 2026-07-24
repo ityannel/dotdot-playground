@@ -1,0 +1,55 @@
+// 5. basic_stats.pop
+// Calculates median, mode, and range of a dataset.
+
+new GetMedian:
+    @ >> arr.
+    arr >> Length >> len.
+    len >> check:
+        is 0: null.
+        else:
+            arr >> Sort:
+                @.
+            .. >> sorted.
+            
+            (len / 2) >> Int >> half.
+            len % 2 >> check:
+                is 1:
+                    sorted[half].
+                else:
+                    (sorted[half - 1] + sorted[half]) / 2.0.
+            ..
+    ..
+..
+
+new GetRange:
+    @ >> arr.
+    arr >> Length >> len.
+    len >> check:
+        is 0: 0.
+        else:
+            arr >> Max >> max_val.
+            arr >> Min >> min_val.
+            max_val - min_val.
+    ..
+..
+
+[12, 45, 23, 67, 12, 89, 34, 12, 45, 67, 67, 67, 23] >> data.
+
+"Dataset: " >> out1.
+(data >> ToJson) >+> out1 >> Display.
+
+data >> GetMedian >> med.
+"Median: " >> out2.
+(med >> Str) >+> out2 >> Display.
+
+data >> GetRange >> rng.
+"Range: " >> out3.
+(rng >> Str) >+> out3 >> Display.
+
+// Mode using Group
+data >> Group:
+    @.
+.. >> grouped.
+
+"Grouped Data: " >> out4.
+(grouped >> ToJson) >+> out4 >> Display.

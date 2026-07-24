@@ -1,0 +1,31 @@
+// 02_longest_word.pop
+// Finds the longest word in a given text string.
+
+"In the realm of computational linguistics, identifying the longest contiguous sequence of characters is a fundamental task." >> text.
+
+// Clean the text
+(text & "," & "") >> Replace >> clean1.
+(clean1 & "." & "") >> Replace >> clean_text.
+
+// Split into words
+(clean_text & " ") >> Split >> words.
+
+// Use Reduce to find the maximum length word
+words >> Reduce @longest @current:
+    @longest >> Length >> len_longest.
+    @current >> Length >> len_current.
+    
+    len_current >> check:
+        is > len_longest:
+            @current >> Return.
+        else:
+            @longest >> Return.
+    ..
+.. >> longest_word.
+
+longest_word >> Length >> longest_len.
+
+"--- Longest Word Result ---" >> Display.
+("Text: " + text) >> Display.
+("Longest word: " + longest_word) >> Display.
+("Length: " + (longest_len >> Str)) >> Display.

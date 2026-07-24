@@ -1,0 +1,25 @@
+// Standard Library Phase 2 Test
+
+"--- Network / File Unified Fetch ---" >> Display.
+"https://dummyjson.com/quotes/random" >> Fetch >> FromJson >> data.
+data & "quote" >> Get >> q.
+data & "author" >> Get >> a.
+"Quote of the day: " + q + " - " + a >> Display.
+
+// File fetch test
+"Dummy File Content" & "test_fetch.txt" >> WriteFile.
+"test_fetch.txt" >> Fetch >> "Fetched from file: " + @ >> Display.
+
+"--- JSON Processing ---" >> Display.
+["apple", "banana"] >> ToJson >> "JSON String: " + @ >> Display.
+
+"--- Date and Random ---" >> Display.
+"" >> Now >> "今日は {year}年{month}月{day}日 {hour}時{minute}分 です" & @ >> Format >> Display.
+1 & 100 >> Random >> "Random number (1-100): " + @ >> Display.
+
+"--- Advanced String/List ---" >> Display.
+["A", "B", "C"] & "-" >> Join >> "Joined: " + @ >> Display.
+[10, 20, 30] & 20 >> Contains >> "Contains 20? " + @ >> Display.
+"Dot dot is awesome" & 4 & 7 >> Slice >> "Sliced string: '" + @ + "'" >> Display.
+
+"Done Phase 2!" >> Display.

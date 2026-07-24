@@ -1,0 +1,30 @@
+new DistSquareFromOrigin:
+    @ >> p.
+    p["x"] * p["x"] >> dx2.
+    p["y"] * p["y"] >> dy2.
+    dx2 + dy2 >> Return.
+..
+
+new IsFarEnough:
+    @ > 20 >> Return.
+..
+
+[
+    {"id": "enemy1", "x": 3, "y": 4},
+    {"id": "enemy2", "x": 10, "y": 10},
+    {"id": "enemy3", "x": 1, "y": 1}
+] >> enemies.
+
+enemies >> Map:
+    @ >> DistSquareFromOrigin >> Return.
+.. >> sq_distances.
+
+"Squared distances of enemies from origin:" >> Display.
+sq_distances >> Display.
+
+sq_distances >> Filter:
+    @ >> IsFarEnough >> Return.
+.. >> far_dists.
+
+"Enemies far enough (sq_dist > 20):" >> Display.
+far_dists >> Display.

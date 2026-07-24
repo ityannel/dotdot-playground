@@ -1,0 +1,15 @@
+// test_map.pop
+[1, 2, 3] >> Map:
+    @ * 2 >> Return.
+.. >> doubled.
+doubled >> Display.
+
+[1, 2, 3, 4] >> Filter:
+    @ % 2 == 0 >> Return.
+.. >> evens.
+evens >> Display.
+
+[1, 2, 3] >> Reduce:
+    (@acc + @item) >> Return.
+.. >> sum.
+sum >> Display.

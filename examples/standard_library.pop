@@ -1,0 +1,28 @@
+// Standard Library Test for Dot dot
+
+"--- String and List Manipulation ---" >> Display.
+[1, 2, 3] >> Length >> "Length of list: " + @ >> Display.
+[3, 1, 2] >> Sort >> "Sorted list: " + @ >> Display.
+"hello" >> Reverse >> "Reversed string: " + @ >> Display.
+"APPLE" >> Lowercase >> "Lowercased: " + @ >> Display.
+"  text  " >> Trim >> "Trimmed: '" + @ + "'" >> Display.
+
+"--- Bundle Operations ---" >> Display.
+"a,b,c" & "," >> Split >> "Split result: " + @ >> Display.
+"hello" & "l" & "L" >> Replace >> "Replaced string: " + @ >> Display.
+
+"--- Math Operations ---" >> Display.
+[10, 5, 20] >> Max >> "Max value: " + @ >> Display.
+[10, 5, 20] >> Min >> "Min value: " + @ >> Display.
+3.14 >> Round >> "Rounded: " + @ >> Display.
+-15 >> Abs >> "Absolute value: " + @ >> Display.
+
+"--- System / Utility ---" >> Display.
+100 >> Type >> "Type of 100: " + @ >> Display.
+[1, 2] >> Type >> "Type of [1, 2]: " + @ >> Display.
+
+"--- File I/O ---" >> Display.
+"Hello from Dot dot!" & "test_out.txt" >> WriteFile >> "Wrote to file." >> Display.
+"test_out.txt" >> ReadFile >> "Read from file: " + @ >> Display.
+
+"Done!" >> Display.

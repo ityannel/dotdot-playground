@@ -1,0 +1,6 @@
+// test_fork3.pop
+100 >> fork:
+    "Branch 1: " >+> (@ >> Str) >> Display.
+    "Branch 2: " >+> (@ >> Str) >> Display.
+.. >> results.
+results >> Display.

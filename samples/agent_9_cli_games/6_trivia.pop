@@ -1,0 +1,35 @@
+"Trivia Quiz!" >> Display.
+
+0 >> score.
+
+new Q1:
+    "1. What is 5 * 5?\nAnswer (or quit): " >> Input >> a1.
+    a1 >> check:
+        is "quit": Return.
+        is "25": 
+            "Correct!" >> Display.
+            (score & 1) >> Add >> score.
+        else:
+            "Wrong!" >> Display.
+    ..
+    null >> Q2.
+..
+
+new Q2:
+    "2. Capital of France?\nAnswer (or quit): " >> Input >> a2.
+    a2 >> check:
+        is "quit": Return.
+        is "Paris": 
+            "Correct!" >> Display.
+            (score & 1) >> Add >> score.
+        else:
+            "Wrong!" >> Display.
+    ..
+    null >> End.
+..
+
+new End:
+    ("Final score: %s" & score) >> Format >> Display.
+..
+
+null >> Q1.

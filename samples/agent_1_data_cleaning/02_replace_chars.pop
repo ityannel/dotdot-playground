@@ -1,0 +1,12 @@
+["123-456-7890", " 987 654 3210 ", "555-0000"] >> phone_list.
+
+"--- Cleaning Phone Numbers ---" >> Display.
+
+phone_list >> Map:
+    (@ & "-" & "") >> Replace >> step1.
+    (step1 & " " & "") >> Replace >> Return.
+.. >> clean_phones.
+
+"Cleaned Phones: " >> msg.
+(clean_phones >> ToJson) >+> msg.
+msg >> Display.

@@ -1,0 +1,12 @@
+"CRITICAL" >> severity.
+
+severity >> check:
+    is "CRITICAL":
+        "Send SMS alert!" >> Display.
+    is "ERROR":
+        "Email admin!" >> Display.
+    is "WARNING":
+        "Log to warning file." >> Display.
+    else:
+        "Normal operation." >> Display.
+..

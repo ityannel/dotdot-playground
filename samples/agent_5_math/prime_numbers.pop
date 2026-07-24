@@ -1,0 +1,41 @@
+// 2. prime_numbers.pop
+// Checks for prime numbers and generates a list of primes.
+
+new IsPrime:
+    @ >> num.
+    num >> check:
+        is <= 1: false.
+        is 2: true.
+        else:
+            // Check if even
+            num % 2 >> check:
+                is 0: false.
+                else:
+                    (3 & (num - 1)) >> Range >> candidates.
+                    candidates >> check:
+                        is null: true.
+                        else:
+                            candidates >> Filter:
+                                num % @ >> check:
+                                    is 0: true.
+                                    else: false.
+                                ..
+                            .. >> divisors.
+                            
+                            divisors >> Length >> len.
+                            len >> check:
+                                is 0: true.
+                                else: false.
+                            ..
+                    ..
+            ..
+    ..
+..
+
+(1 & 50) >> Range >> all_nums.
+all_nums >> Filter:
+    @ >> IsPrime.
+.. >> primes.
+
+"Primes up to 50: " >> output.
+(primes >> ToJson) >+> output >> Display.

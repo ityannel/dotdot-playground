@@ -1,0 +1,40 @@
+// 6. gcd_lcm.pop
+// Calculates Greatest Common Divisor and Least Common Multiple.
+
+new GCD:
+    @ >> nums.
+    nums[0] >> a.
+    nums[1] >> b.
+    
+    b >> check:
+        is 0: a.
+        else:
+            (b & (a % b)) >> GCD.
+    ..
+..
+
+new LCM:
+    @ >> nums.
+    nums[0] >> a.
+    nums[1] >> b.
+    
+    a >> check:
+        is 0: 0.
+        else:
+            b >> check:
+                is 0: 0.
+                else:
+                    (a * b) >> Abs >> abs_prod.
+                    (a & b) >> GCD >> gcd_val.
+                    abs_prod / gcd_val.
+            ..
+    ..
+..
+
+(48 & 18) >> GCD >> gcd_res.
+"GCD of 48 and 18: " >> out1.
+(gcd_res >> Str) >+> out1 >> Display.
+
+(48 & 18) >> LCM >> lcm_res.
+"LCM of 48 and 18: " >> out2.
+(lcm_res >> Str) >+> out2 >> Display.

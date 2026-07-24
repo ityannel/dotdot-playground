@@ -1,0 +1,29 @@
+"Simple Blackjack!" >> Display.
+
+new Draw:
+    (1 & 11) >> Random >> Return.
+..
+
+new Play:
+    null >> Draw >> card1.
+    null >> Draw >> card2.
+    (card1 & card2) >> Add >> total.
+    
+    ("Your cards: %s, %s. Total: %s" & card1 & card2 & total) >> Format >> Display.
+    "Hit (h) or Stand (s)? " >> Input >> choice.
+    
+    choice >> check:
+        is "h":
+            null >> Draw >> card3.
+            (total & card3) >> Add >> total.
+            ("You drew %s. Total: %s" & card3 & total) >> Format >> Display.
+            total >> check:
+                is > 21: "Bust! You lose." >> Display.
+                else: "Game over (simplified)." >> Display.
+            ..
+        is "s":
+            "You stood." >> Display.
+    ..
+..
+
+null >> Play.

@@ -1,0 +1,21 @@
+// FizzBuzz in Dot dot (with .. syntax!)
+
+[1, 30] >> Range >> do each:
+    @ >> n.
+    n % 15 >> check:
+        is 0:
+            "FizzBuzz" >> Display.
+        else:
+            n % 3 >> check:
+                is 0:
+                    "Fizz" >> Display.
+                else:
+                    n % 5 >> check:
+                        is 0:
+                            "Buzz" >> Display.
+                        else:
+                            n >> Display.
+                    ..
+            ..
+    ..
+..

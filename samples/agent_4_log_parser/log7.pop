@@ -1,0 +1,24 @@
+[
+    "id,level,msg",
+    "1,INFO,Started",
+    "2,ERROR,Failed to load",
+    "3,DEBUG,Loading config"
+] >> csv_lines.
+
+(csv_lines & 1 & 4) >> Slice >> data_lines.
+
+new ParseCSV:
+    (@ & ",") >> Split >> parts.
+    {} >> my_dict.
+    (my_dict & "id" & parts[0]) >> Set >> my_dict.
+    (my_dict & "level" & parts[1]) >> Set >> my_dict.
+    (my_dict & "msg" & parts[2]) >> Set >> my_dict.
+    my_dict >> Return.
+..
+
+data_lines >> Map @line:
+    line >> ParseCSV.
+.. >> parsed_logs.
+
+"Parsed Log Objects:" >> Display.
+parsed_logs >> ToJson >> Display.

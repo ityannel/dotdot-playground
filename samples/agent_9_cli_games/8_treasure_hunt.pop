@@ -1,0 +1,27 @@
+"Treasure Hunt!" >> Display.
+(1 & 5) >> Random >> tx.
+(1 & 5) >> Random >> ty.
+
+new Hunt:
+    "Enter X coordinate (1-5, or 0 to quit): " >> Input >> Int >> gx.
+    gx >> check:
+        is 0: Return.
+    ..
+    "Enter Y coordinate (1-5): " >> Input >> Int >> gy.
+    
+    gx >> check:
+        is == tx:
+            gy >> check:
+                is == ty:
+                    "You found the treasure!" >> Display.
+                    Return.
+                else:
+                    "Wrong Y!" >> Display.
+            ..
+        else:
+            "Wrong X!" >> Display.
+    ..
+    null >> Hunt.
+..
+
+null >> Hunt.

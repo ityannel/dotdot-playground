@@ -1,0 +1,15 @@
+// 6x7 2D Array initialization in Dot dot
+[
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0]
+] >> date.
+
+// Set value at row 2, col 4 to 15
+(date & 2 >> Get) & 4 & 15 >> Set.
+
+// Display row 2
+date & 2 >> Get >> Display.

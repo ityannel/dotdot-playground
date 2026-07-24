@@ -1,0 +1,22 @@
+new StrictAdd:
+    @ >> arr.
+    arr[0] >> int a.
+    arr[1] >> int b.
+    (a + b).
+..
+
+new SafeAdd:
+    @ >> val.
+    (10 & val) >> StrictAdd >> catch:
+        @ >> err.
+        "Caught Type Mismatch" >> Display.
+        10 >> Return.
+    ..
+..
+
+[5, "apple", 20, "banana"] >> Map:
+    @ >> SafeAdd >> Return.
+.. >> results.
+
+"Failsafes applied:" >> Display.
+results >> Display.

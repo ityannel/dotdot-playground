@@ -1,0 +1,45 @@
+// 4. quick_sort.pop
+// QuickSort implementation using functional filtering.
+
+new QuickSort:
+    @ >> arr.
+    arr >> Length >> l.
+    l >> check:
+        is <= 1: arr.
+        else:
+            arr[0] >> pivot.
+            
+            arr >> Filter:
+                @ < pivot.
+            .. >> left.
+            
+            arr >> Filter:
+                @ == pivot.
+            .. >> mid.
+            
+            arr >> Filter:
+                @ > pivot.
+            .. >> right.
+            
+            left >> QuickSort >> sorted_left.
+            right >> QuickSort >> sorted_right.
+            
+            sorted_left >> result.
+            mid >!>:
+                @ >+> result.
+            ..
+            sorted_right >!>:
+                @ >+> result.
+            ..
+            
+            result.
+    ..
+..
+
+[38, 27, 43, 3, 9, 82, 10, 19, 50, 4] >> data.
+"Original: " >> out1.
+(data >> ToJson) >+> out1 >> Display.
+
+data >> QuickSort >> sorted.
+"Sorted: " >> out2.
+(sorted >> ToJson) >+> out2 >> Display.

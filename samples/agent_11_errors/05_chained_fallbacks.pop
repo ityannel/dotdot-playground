@@ -1,0 +1,20 @@
+new RiskyMath:
+    @ >> val.
+    (100 / val) >> num.
+    (num & 10) >> Add.
+..
+
+new SafePipeline:
+    @ >> val.
+    val >> RiskyMath >> catch:
+        @ >> err.
+        -999 >> Return.
+    ..
+..
+
+[10, 0, 5, 0] >> Map:
+    @ >> SafePipeline >> Return.
+.. >> output.
+
+"Chained results:" >> Display.
+output >> Display.

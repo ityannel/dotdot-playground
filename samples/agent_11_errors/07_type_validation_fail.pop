@@ -1,0 +1,20 @@
+new ExpectInt:
+    @ >> int val.
+    (val * 2).
+..
+
+new TryProcess:
+    @ >> v.
+    v >> ExpectInt >> catch:
+        @ >> err.
+        "Type validation failed. Returning 0." >> Display.
+        0 >> Return.
+    ..
+..
+
+[10, "string", 20, false] >> Map:
+    @ >> TryProcess >> Return.
+.. >> res.
+
+"Validated results:" >> Display.
+res >> Display.

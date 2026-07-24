@@ -1,0 +1,48 @@
+// sensor_data.pop
+[
+    {"sensor": "temp", "val": 22.5},
+    {"sensor": "temp", "val": -999.0},
+    {"sensor": "temp", "val": 23.1},
+    {"sensor": "temp", "val": 22.8},
+    {"sensor": "temp", "val": 1000.0},
+    {"sensor": "temp", "val": 21.9}
+] >> readings.
+
+readings >> Filter @r:
+    r["val"] >> v.
+    v >> check:
+        is < -50.0: false >> Return.
+        is > 100.0: false >> Return.
+        else: true >> Return.
+    ..
+.. >> clean_readings.
+
+clean_readings >> Map @cr:
+    cr["val"] >> Return.
+.. >> values.
+
+values >> Reduce @acc @val:
+    (acc + val) >> Return.
+.. >> total.
+
+values >> Reduce @acc @val:
+    acc >> check:
+        is > val: acc >> Return.
+        else: val >> Return.
+    ..
+.. >> maximum.
+
+values >> Reduce @acc @val:
+    acc >> check:
+        is < val: acc >> Return.
+        else: val >> Return.
+    ..
+.. >> minimum.
+
+values >> Length >> len.
+(total / len) >> average.
+
+$"Valid Readings Count: {len}" >> Display.
+$"Min Temp: {minimum}" >> Display.
+$"Max Temp: {maximum}" >> Display.
+$"Avg Temp: {average}" >> Display.

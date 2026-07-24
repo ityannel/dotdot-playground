@@ -1,0 +1,22 @@
+[100, -50, 200, null, 50] >> transactions.
+
+"--- Aggregating Totals ---" >> Display.
+
+transactions >> Filter:
+    @ >> item.
+    item >> Type >> check:
+        is "list": false >> Return.
+    ..
+    item >> check:
+        is < 0: false >> Return.
+    ..
+    true >> Return.
+.. >> valid_tx.
+
+valid_tx >> Reduce:
+    (@[0] & @[1]) >> Add >> Return.
+.. >> total.
+
+"Total: " >> msg.
+(total >> Str) >+> msg.
+msg >> Display.

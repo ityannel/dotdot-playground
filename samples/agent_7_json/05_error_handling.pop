@@ -1,0 +1,10 @@
+// 05_error_handling.pop
+"{\"broken_json: true" >> invalid_json.
+
+invalid_json >> FromJson >> catch:
+    @ >> err.
+    "Failed to parse JSON: " >+> err["message"] >> Display.
+    {} // return empty dict implicitly
+.. >> result.
+
+result >> ToJson >> Display.

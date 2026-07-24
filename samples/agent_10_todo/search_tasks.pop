@@ -1,0 +1,18 @@
+// search_tasks.pop
+// Filter tasks containing a keyword using Contains
+
+[] >> tasks.
+{"id": 1, "title": "Buy Milk"} >+> tasks.
+{"id": 2, "title": "Read a Book"} >+> tasks.
+{"id": 3, "title": "Buy a new laptop"} >+> tasks.
+
+"Buy" >> keyword.
+
+"Searching for: " + keyword >> Display.
+
+tasks >> Filter:
+    (@["title"] & keyword) >> Contains.
+.. >> search_results.
+
+"--- Search Results ---" >> Display.
+search_results >> Display.

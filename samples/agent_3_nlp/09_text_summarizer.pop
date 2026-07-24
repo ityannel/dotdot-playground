@@ -1,0 +1,49 @@
+// 09_text_summarizer.pop
+// A mock text summarizer that scores sentences based on keyword matching and length.
+
+"Artificial intelligence is rapidly evolving. Many companies are investing in AI research. This is just a short filler. The future of machine learning will change how we interact with technology completely. Bye." >> text.
+
+// Split into sentences
+(text & ".") >> Split >> raw_sentences.
+
+// Filter out empty sentences
+raw_sentences >> Filter @s:
+    @s >> Length >> l.
+    l >> check:
+        is > 2: true >> Return.
+        else: false >> Return.
+    ..
+.. >> sentences.
+
+["intelligence", "evolving", "research", "machine", "technology"] >> important_keywords.
+
+sentences >> Map @s:
+    // Score based on length
+    @s >> Length >> score.
+    
+    // Return a bundle of score and sentence
+    (score & @s) >> Return.
+.. >> scored_sentences.
+
+// Sort sentences by score (Sort stream sorts by the value returned from the block)
+scored_sentences >> Sort:
+    // @[0] is the score, @[1] is the sentence.
+    // We want descending order, so return negative score.
+    (0 - @[0]) >> Return.
+.. >> sorted_sentences.
+
+// Extract the top 2 sentences
+(sorted_sentences & 0 & 2) >> Slice >> top_2_bundles.
+
+// Extract just the sentences from the bundles
+top_2_bundles >> Map @bundle:
+    @bundle[1] >> Return.
+.. >> summary_sentences.
+
+// Join them
+(summary_sentences & ". ") >> Join >> summary.
+(summary + ".") >> final_summary.
+
+"--- Text Summarizer ---" >> Display.
+("Original Text: " + text) >> Display.
+("Summary: " + final_summary) >> Display.

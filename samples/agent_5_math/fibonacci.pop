@@ -1,0 +1,29 @@
+// 3. fibonacci.pop
+// Generates Fibonacci sequence and calculates golden ratio.
+
+new FibonacciSeq:
+    @ >> n.
+    n >> check:
+        is <= 0: [].
+        is 1: [0].
+        is 2: [0, 1].
+        else:
+            [0, 1] >> seq.
+            (3 & n) >> Range >> Map:
+                seq >> Length >> length.
+                seq[length - 1] + seq[length - 2] >> next_val.
+                next_val >+> seq.
+                next_val.
+            ..
+            seq.
+    ..
+..
+
+15 >> FibonacciSeq >> fib_nums.
+"Fibonacci (15): " >> out1.
+(fib_nums >> ToJson) >+> out1 >> Display.
+
+fib_nums >> Length >> length.
+fib_nums[length - 1] / fib_nums[length - 2] >> golden_ratio.
+"Golden Ratio approx: " >> out2.
+(golden_ratio >> Str) >+> out2 >> Display.

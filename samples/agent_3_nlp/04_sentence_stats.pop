@@ -1,0 +1,41 @@
+// 04_sentence_stats.pop
+// Analyzes sentences in a text, counts words per sentence, and filters out short ones.
+
+"Natural language processing is hard. But it is very rewarding. AI. This sentence has enough words to pass the filter. Short." >> text.
+
+// Split into sentences
+(text & ".") >> Split >> sentences.
+
+// We will map each sentence to a dictionary containing the sentence and its word count
+sentences >> Map @s:
+    // Basic cleanup
+    (@s & "," & "") >> Replace >> s_clean.
+    (s_clean & " ") >> Split >> raw_words.
+    
+    // Filter out empty words caused by spaces
+    raw_words >> Filter @w:
+        @w >> Length >> l.
+        l >> check:
+            is > 0: true >> Return.
+            else: false >> Return.
+        ..
+    .. >> actual_words.
+    
+    actual_words >> Length >> word_count.
+    
+    {} >> stat.
+    (stat & "sentence" & @s) >> Set >> stat1.
+    (stat1 & "word_count" & word_count) >> Set >> Return.
+.. >> sentence_stats.
+
+// Now filter out sentences with 3 or fewer words
+sentence_stats >> Filter @stat:
+    (@stat & "word_count") >> Get >> count.
+    count >> check:
+        is > 3: true >> Return.
+        else: false >> Return.
+    ..
+.. >> long_sentences.
+
+"--- Long Sentences Only (Word Count > 3) ---" >> Display.
+long_sentences >> ToJson >> Display.

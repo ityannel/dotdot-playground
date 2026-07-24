@@ -1,0 +1,18 @@
+new CalcPos:
+    @ >> t.
+    10 * t >> x.
+    (20 * t) - (2 * t * t) >> y.
+    
+    {} >> pos.
+    (pos & "x" & x) >> Set >> pos.
+    (pos & "y" & y) >> Set >> Return.
+..
+
+(0 & 5) >> Range >> times.
+
+times >> Map:
+    @ >> CalcPos >> Return.
+.. >> path.
+
+"Projectile Path over 5 seconds:" >> Display.
+path >> Display.

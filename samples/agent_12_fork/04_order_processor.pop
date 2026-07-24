@@ -1,0 +1,24 @@
+new EmailCustomer:
+    (@ & "email") >> Get >> email.
+    ("Sending order confirmation email to {}" & email) >> Format >> Display.
+..
+
+new NotifyShipping:
+    (@ & "item") >> Get >> item.
+    ("Notifying warehouse to pack: {}" & item) >> Format >> Display.
+..
+
+new UpdateInventory:
+    (@ & "item") >> Get >> item.
+    ("Decreasing inventory count for {}" & item) >> Format >> Display.
+..
+
+{"order_id": 9921, "email": "buyer@example.com", "item": "Wireless Mouse"} >> order.
+
+order >> Fork:
+    @ >> EmailCustomer.
+    @ >> NotifyShipping.
+    @ >> UpdateInventory.
+..
+
+"Order processing parallel paths started successfully." >> Display.

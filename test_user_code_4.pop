@@ -1,0 +1,13 @@
+"https://invalid-api-endpoint.example.com/users" >> Fetch >!> "ネットワークエラー。デフォルトデータを使用します." >> 
+    [
+        {"name": "Alice", "age": 25},
+        {"name": "Bob", "age": 17},
+        {"name": "Charlie", "age": 30},
+        {"name": "David", "age": 15}
+    ] >> List >> users.
+
+    users >> Filter:
+        @::age >= 20.
+    .. >> Sort:
+        @::age.
+    .. >> Display.

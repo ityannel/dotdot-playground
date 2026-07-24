@@ -1,0 +1,21 @@
+// script_08_shipping.pop
+[2000, 1500, 3000] >> prices.
+
+prices >> Reduce @a @b:
+    (@a + @b) >> Return.
+.. >> total.
+
+total >> check:
+    is > 5000:
+        0 >> shipping.
+    is > 2000:
+        500 >> shipping.
+    else:
+        1000 >> shipping.
+..
+
+(total + shipping) >> final_total.
+
+(["Cart Total: ", (total >> Str)] & "") >> Join >> Display.
+(["Shipping Fee: ", (shipping >> Str)] & "") >> Join >> Display.
+(["Final Total: ", (final_total >> Str)] & "") >> Join >> Display.

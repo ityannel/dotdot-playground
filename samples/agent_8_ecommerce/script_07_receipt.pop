@@ -1,0 +1,24 @@
+// script_07_receipt.pop
+[
+    {"name": "Book", "price": 1200, "qty": 2},
+    {"name": "Pen", "price": 300, "qty": 5},
+    {"name": "Notebook", "price": 500, "qty": 3},
+    {"name": "Eraser", "price": 150, "qty": 1}
+] >> cart.
+
+cart >> Map:
+    @ >> item.
+    (item["price"] * item["qty"]) >> subtotal.
+    (subtotal >> Str) >> sub_str.
+    (item["qty"] >> Str) >> qty_str.
+    (["- ", item["name"], " x", qty_str, ": $", sub_str] & "") >> Join >> Return.
+.. >> receipt_lines.
+
+(receipt_lines & "\n") >> Join >> body.
+
+"Store Name: PopPop Mart" >> store_name.
+"Date: 2026-07-22" >> date_str.
+"=====================" >> divider.
+
+([divider, store_name, date_str, divider, body, divider, "Thank you!"] & "\n") >> Join >> receipt.
+receipt >> Display.

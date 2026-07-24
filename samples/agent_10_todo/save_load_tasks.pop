@@ -1,0 +1,27 @@
+// save_load_tasks.pop
+// Demonstrates Fork to simulate save and Catch to handle load error
+
+[] >> tasks.
+{"id": 1, "title": "Save the world", "done": false} >+> tasks.
+
+tasks >> Fork:
+    (@ >> ToJson & "tasks_db.json") >> WriteFile.
+    @ >> Display.
+..
+
+"--- Loading Tasks ---" >> Display.
+
+"tasks_db.json" >> Fetch >> FromJson >> loaded.
+"Loaded: " >> Display.
+loaded >> Display.
+
+"--- Testing Error Catch ---" >> Display.
+"missing_db.json" >> Fetch >> catch:
+    @ >> err.
+    "Failed to load missing_db.json!" >> Display.
+    "Reason: " + err["message"] >> Display.
+    [].
+.. >> fallback_tasks.
+
+"Fallback tasks: " >> Display.
+fallback_tasks >> Display.

@@ -1,0 +1,23 @@
+["  data 1 ", null, "  ", "data 2"] >> raw_data.
+
+"--- Full Pipeline ---" >> Display.
+
+raw_data >> Map:
+    @ >> item.
+    item >> Type >> check:
+        is "list": "" >> Return.
+    ..
+    (item & " " & "") >> Replace >> Return.
+.. >> clean_str.
+
+clean_str >> Filter:
+    @ >> Length >> check:
+        is > 0: true >> Return.
+    ..
+    false >> Return.
+.. >> processed.
+
+processed >> Fork:
+    ( [ "Result: ", (@ >> ToJson) ] & "" ) >> Join >> Display.
+    ( [ "Count: ", (@ >> Length >> Str) ] & "" ) >> Join >> Display.
+..

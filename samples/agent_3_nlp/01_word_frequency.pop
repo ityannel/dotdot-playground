@@ -1,0 +1,34 @@
+// 01_word_frequency.pop
+// Calculates the frequency of each word in a text using Map and Reduce.
+
+"Natural language processing is a fascinating field of artificial intelligence. It involves the analysis of natural language text to extract meaningful insights. Natural language is complex." >> raw_text.
+
+// Remove punctuation for cleaner analysis
+(raw_text & "." & "") >> Replace >> clean1.
+(clean1 & "," & "") >> Replace >> clean_text.
+
+// Split text into words
+(clean_text & " ") >> Split >> words.
+
+// Normalize words to lowercase
+words >> Map @w:
+    @w >> Lowercase >> Return.
+.. >> lower_words.
+
+// Initialize array for Reduce (prepend empty dict)
+[] >> reduce_arr.
+{} >+> reduce_arr.
+lower_words >> Map @w:
+    @w >+> reduce_arr.
+..
+
+// Count frequencies using Reduce
+reduce_arr >> Reduce @dict @word:
+    (@dict & @word) >> Get >> catch:
+        0
+    .. >> count.
+    (@dict & @word & (count + 1)) >> Set >> Return.
+.. >> frequencies.
+
+"--- Word Frequencies ---" >> Display.
+frequencies >> ToJson >> Display.

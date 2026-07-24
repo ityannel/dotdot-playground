@@ -1,0 +1,38 @@
+// 8. matrix_stats.pop
+// Matrix Transpose and Trace calculation.
+
+new Transpose:
+    @ >> Zip:
+        @.
+    ..
+..
+
+new Trace:
+    @ >> matrix.
+    matrix >> Length >> n.
+    (0 & (n - 1)) >> Range >> Map:
+        @ >> i.
+        matrix[i][i].
+    .. >> diag.
+    
+    diag >> Reduce:
+        @[0] + @[1].
+    ..
+..
+
+[
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9]
+] >> mat.
+
+"Original Matrix: " >> out1.
+(mat >> ToJson) >+> out1 >> Display.
+
+mat >> Transpose >> t_mat.
+"Transposed Matrix: " >> out2.
+(t_mat >> ToJson) >+> out2 >> Display.
+
+mat >> Trace >> tr.
+"Trace of Matrix: " >> out3.
+(tr >> Str) >+> out3 >> Display.

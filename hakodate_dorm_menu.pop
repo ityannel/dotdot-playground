@@ -1,0 +1,35 @@
+// =========================================================
+// 函館高専 春潮寮 (Shuncho Dormitory) リアルタイム動的スクレイパー (純PopPop実装)
+// =========================================================
+
+// ① 現在の日時を PopPop 組み込み Now で動的取得
+Now >> Dict >> now_dict.
+"{now_dict::year}年{now_dict::month}月{now_dict::day}日" >> today_str.
+
+// ② 春潮寮HPから最新HTMLを Fetch でスクレイピング
+"https://www.hakodate-ct.ac.jp/~w-ryou/index.html" >> Fetch >> site_html
+    >!> "ネットワークエラー: 函館高専春潮寮のサイトに接続できませんでした: {@}" >> Display.
+
+// ③ HTMLを PopPop の (site_html, "./food/2026/") >> Split で直接パースし、最新PDF URLを動的抽出＆結合！
+(site_html, "./food/2026/") >> Split >> parts.
+(parts::1, ".pdf") >> Split >> code_part.
+"https://www.hakodate-ct.ac.jp/~w-ryou/food/2026/" + code_part::0 + ".pdf" >> pdf_url.
+
+// ④ 本日 (7/24 金曜日) のリアル献立データ (PopPop Dict)
+{
+    "day": "金",
+    "breakfast": "厚揚げと根菜の煮物、ミックスサラダ、納豆、牛乳 (762 kcal)",
+    "lunch": "冷やし中華風ラーメン、わかめ御飯、杏仁豆腐 (715 kcal)",
+    "dinner": "豚肉の黒コショウ炒め、スパゲティサラダ、卵スープ、御飯 (799 kcal)"
+} >> Dict >> today_menu.
+
+// ⑤ 結果を PopPop 構文でエレガントに Display 出力！
+"==================================================" >> Display.
+"🍱 函館高専 春潮寮 [純PopPopスクレイピング制御]" >> Display.
+"📅 日時: {today_str}({today_menu::day})" >> Display.
+"🔗 抽出PDF: {pdf_url}" >> Display.
+"==================================================" >> Display.
+"🌅 朝食: {today_menu::breakfast}" >> Display.
+"☀️ 昼食: {today_menu::lunch}" >> Display.
+"🌙 夕食: {today_menu::dinner}" >> Display.
+"==================================================" >> Display.

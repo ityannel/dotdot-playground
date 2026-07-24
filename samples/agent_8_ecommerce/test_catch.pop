@@ -1,0 +1,6 @@
+// test_catch.pop
+[1] >> Map:
+    @["missing"] >> Return.
+.. >> catch:
+    "Error: " >+> @["message"] >> Display.
+..

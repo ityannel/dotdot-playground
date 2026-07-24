@@ -1,0 +1,25 @@
+[
+    {"name": "高級キーボード", "price": 24800, "qty": 1},
+    {"name": "エルゴノミクスマウス", "price": 8500, "qty": 2},
+    {"name": "4Kゲーミングモニター", "price": 45000, "qty": 1},
+    {"name": "USB-Cケーブル", "price": 1200, "qty": 3}
+] >> cart.
+
+cart >> Map(item):
+    {   
+        "name": item::name,
+        "price": item::price,
+        "qty": item::qty,
+        "value": item::price * item::qty
+    }
+.. >> List >> valued.
+
+valued >> Filter(item):
+    item::value >= 15000
+.. >> filtered.
+
+filtered >> Sort(item):
+    -item::value
+.. >> List >> sorted.
+
+sorted >> Display.

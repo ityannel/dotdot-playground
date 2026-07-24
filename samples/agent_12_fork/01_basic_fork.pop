@@ -1,0 +1,15 @@
+new ProcessA:
+    ("Branch A processed: {}" & @) >> Format >> Display.
+..
+
+new ProcessB:
+    ("Branch B processed: {}" & @) >> Format >> Display.
+..
+
+"Initial Data Payload" >> Fork:
+    @ >> ProcessA.
+    @ >> ProcessB.
+    ("Branch C (inline) processed: {}" & @) >> Format >> Display.
+..
+
+"Done Forking!" >> Display.

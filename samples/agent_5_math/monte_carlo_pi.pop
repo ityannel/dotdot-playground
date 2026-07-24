@@ -1,0 +1,34 @@
+// 10. monte_carlo_pi.pop
+// Estimating Pi using Monte Carlo method.
+
+new RandomFloat:
+    // Generate between 0 and 10000
+    (0 & 10000) >> Random >> r.
+    r / 10000.0.
+..
+
+new EstimatePi:
+    @ >> iterations.
+    
+    (1 & iterations) >> Range >> Map:
+        null >> RandomFloat >> x.
+        null >> RandomFloat >> y.
+        
+        (x * x) + (y * y) >> dist_sq.
+        
+        dist_sq >> check:
+            is <= 1.0: 1.
+            else: 0.
+        ..
+    .. >> results.
+    
+    results >> Reduce:
+        @[0] + @[1].
+    .. >> inside_circle.
+    
+    (inside_circle * 4.0) / iterations.
+..
+
+10000 >> EstimatePi >> pi_approx.
+"Pi estimate (10000 points): " >> out.
+(pi_approx >> Str) >+> out >> Display.

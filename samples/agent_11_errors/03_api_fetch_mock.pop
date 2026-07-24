@@ -1,0 +1,25 @@
+new MockProcess:
+    @ >> data.
+    data >> check:
+        is "bad":
+            (1 / 0) >> trigger.
+        else:
+            "success".
+    ..
+..
+
+new SafeProcess:
+    @ >> data.
+    data >> MockProcess >> catch:
+        @ >> err.
+        "Failed, returning default" >> Display.
+        "default" >> Return.
+    ..
+..
+
+["good", "bad", "okay"] >> Map:
+    @ >> SafeProcess >> Return.
+.. >> out.
+
+"Outputs:" >> Display.
+out >> Display.

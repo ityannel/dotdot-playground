@@ -1,0 +1,15 @@
+["ALICE", "bob", "ChArLiE", null] >> names.
+
+"--- Normalizing Case ---" >> Display.
+
+names >> Map:
+    @ >> item.
+    item >> Type >> check:
+        is "list": "" >> Return.
+    ..
+    item >> Uppercase >> Return.
+.. >> normalized_names.
+
+"Normalized: " >> msg.
+(normalized_names >> ToJson) >+> msg.
+msg >> Display.

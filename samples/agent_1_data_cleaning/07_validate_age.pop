@@ -1,0 +1,18 @@
+["25", "-5", "30", "invalid"] >> ages_str.
+
+"--- Validating Ages ---" >> Display.
+
+ages_str >> Map:
+    @ >> Int >> catch:
+        -1 >> Return.
+    .. >> age.
+    
+    age >> check:
+        is < 0: -1 >> Return.
+    ..
+    age >> Return.
+.. >> ages_int.
+
+"Ages: " >> msg.
+(ages_int >> ToJson) >+> msg.
+msg >> Display.

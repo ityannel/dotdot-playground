@@ -1,0 +1,18 @@
+// script_06_error_handling.pop
+[
+    {"name": "Table", "price": 8000},
+    {"name": "Chair"} // missing price
+] >> cart.
+
+cart >> Map:
+    @ >> item.
+    item["price"] >> price.
+    (price * 0.9) >> Return.
+.. >> catch:
+    @ >> err.
+    (["Error processing cart: ", err["message"]] & "") >> Join >> Display.
+    [0, 0]
+.. >> discounted_prices.
+
+"Discounted Prices: " >> Display.
+discounted_prices >> Display.

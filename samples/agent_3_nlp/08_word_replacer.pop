@@ -1,0 +1,34 @@
+// 08_word_replacer.pop
+// Replaces specific sensitive words with asterisks (censorship simulation).
+
+"The secret password is apple and the hidden base is in london. Do not tell anyone about apple." >> message.
+
+// Dictionary of words to replace
+{} >> filter_dict.
+(filter_dict & "apple" & "***") >> Set >> f1.
+(f1 & "london" & "******") >> Set >> f2.
+(f2 & "password" & "********") >> Set >> censorship_map.
+
+// Split into words
+(message & "." & "") >> Replace >> no_dot.
+(no_dot & " ") >> Split >> words.
+
+// Map words to their replacements if they exist in the dictionary
+words >> Map @w:
+    @w >> Lowercase >> lw.
+    
+    (censorship_map & lw) >> Get >> catch:
+        // If the word is not in the censorship map, return the original word
+        @w >> Return.
+    .. >> replacement.
+    
+    replacement >> Return.
+.. >> censored_words.
+
+// Join the censored words back into a sentence
+(censored_words & " ") >> Join >> censored_message.
+(censored_message + ".") >> final_message.
+
+"--- Word Replacer ---" >> Display.
+("Original: " + message) >> Display.
+("Censored: " + final_message) >> Display.

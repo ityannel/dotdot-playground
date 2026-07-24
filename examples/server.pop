@@ -1,0 +1,26 @@
+(dict req) >> new HandleRequest:
+    req >> @.path >> path.
+    req >> @.method >> method.
+    
+    path >> check:
+        is @ == "/":
+            "<h1>Welcome to Dot dot Server!</h1>" >> Return.
+            
+        is @ == "/api/data":
+            method >> check:
+                is @ == "GET":
+                    '{"message": "Hello API!"}' >> body.
+                    {"status": 200, "headers": {"Content-Type": "application/json"}, "body": body} >> Return.
+                is @ == "POST":
+                    req >> @.body >> post_body.
+                    "Received POST data: {0}" & post_body >> Format >> body_msg.
+                    body_msg >> ToJson >> body.
+                    {"status": 201, "headers": {"Content-Type": "application/json"}, "body": body} >> Return.
+            ..
+            
+        else:
+            {"status": 404, "body": "404 Not Found"} >> Return.
+    ..
+..
+
+8080 & "HandleRequest" >> Serve.

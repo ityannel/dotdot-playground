@@ -1,0 +1,21 @@
+// list_pending.pop
+// Demonstrates filtering to show only pending tasks
+
+[] >> tasks.
+{"id": 1, "title": "Buy Milk", "done": true} >+> tasks.
+{"id": 2, "title": "Read Book", "done": false} >+> tasks.
+{"id": 3, "title": "Write Code", "done": true} >+> tasks.
+{"id": 4, "title": "Walk Dog", "done": false} >+> tasks.
+
+"--- All Tasks ---" >> Display.
+tasks >> Display.
+
+tasks >> Filter:
+    @["done"] >> check:
+        is false: true.
+        else: false.
+    ..
+.. >> pending_tasks.
+
+"--- Pending Tasks ---" >> Display.
+pending_tasks >> Display.

@@ -1,0 +1,17 @@
+"Word Guesser!" >> Display.
+"poppop" >> target.
+"" >> guessed.
+
+new Loop:
+    "Guess a letter (or 'quit'): " >> Input >> guess.
+    guess >> check:
+        is "quit":
+            "Bye!" >> Display.
+        else:
+            guess >+> guessed.
+            "You guessed: " >+> guessed >> Display.
+            null >> Loop.
+    ..
+..
+
+null >> Loop.

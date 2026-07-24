@@ -1,0 +1,26 @@
+"--- Dictionary Test ---" >> Display.
+{"name": "Alice", "age": 25} >> dict1.
+dict1 & "name" >> Get >> Display.
+"Alice's age is {age}" & dict1 >> Format >> Display.
+
+"--- Parallel Processing (Fork/Join) Test ---" >> Display.
+["https://api.github.com/users/octocat", "https://api.github.com/users/torvalds"] >> fork:
+    url.
+    "{0} を取得中..." & url >> Format >> Display.
+    url >> Fetch >> FromJson.
+.. >> users.
+users >> Length >> len.
+"取得完了: {0} ユーザー" & len >> Format >> Display.
+
+"--- Error Handling Test ---" >> Display.
+"https://invalid-url-that-does-not-exist" >> Fetch >> catch:
+    err.
+    err & "type" >> Get >> type.
+    err & "message" >> Get >> msg.
+    "エラーを捕捉しました: [{0}] {1}" & type & msg >> Format >> Display.
+    "エラー時の代替データ". // fallback value
+.. >> fallback.
+
+"フォールバック結果: {0}" & fallback >> Format >> Display.
+
+"すべてのテストが完了しました！" >> Display.

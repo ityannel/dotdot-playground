@@ -1,0 +1,35 @@
+// Dot dot 電卓アプリ (Calculator)
+
+new CalculatorLoop:
+    "--------------------------------------" >> Display.
+    "計算したい最初の数字を入力 (終了は 'q'): " >> Input >> input1.
+    
+    input1 >> check:
+        is @ == "q":
+            "電卓を終了します。お疲れ様でした！" >> Display.
+            "" >> Return. // 関数を終了（ループを抜ける）
+    ..
+    
+    input1 >> Int >> num1.
+    
+    "演算子を入力してください (+, -, *, /): " >> Input >> op.
+    "次の数字を入力: " >> Input >> Int >> num2.
+    
+    op >> check:
+        is @ == "+": num1 + num2 >> res.
+        is @ == "-": num1 - num2 >> res.
+        is @ == "*": num1 * num2 >> res.
+        is @ == "/": num1 / num2 >> res.
+        else: 
+            "無効な演算子です" >> Display.
+            0 >> res.
+    ..
+    
+    "✨ 結果: " + num1 + " " + op + " " + num2 + " = " + res >> Display.
+    
+    // 再び関数自身を呼び出すことで無限ループを作る
+    "" >> CalculatorLoop.
+..
+
+"Dot dot 電卓へようこそ！" >> Display.
+"" >> CalculatorLoop.

@@ -1,0 +1,30 @@
+[
+    "MSG: short",
+    "MSG: a slightly longer message",
+    "MSG: the longest message in the log file"
+] >> logs.
+
+new GetMsg:
+    (@ & ": ") >> Split >> parts.
+    parts[1] >> Return.
+..
+
+logs >> Map @log:
+    log >> GetMsg.
+.. >> messages.
+
+messages >> Reduce @arr:
+    arr[0] >> a.
+    arr[1] >> b.
+    a >> Length >> len_a.
+    b >> Length >> len_b.
+    len_a >> check:
+        is > len_b:
+            a.
+        else:
+            b.
+    ..
+.. >> longest.
+
+"Longest message:" >> Display.
+longest >> Display.

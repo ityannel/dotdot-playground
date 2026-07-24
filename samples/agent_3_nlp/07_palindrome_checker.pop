@@ -1,0 +1,30 @@
+// 07_palindrome_checker.pop
+// Analyzes a text and identifies all palindromic words.
+
+"A man saw a racecar and a kayak at noon level." >> text.
+
+(text & "." & "") >> Replace >> c1.
+(c1 & " ") >> Split >> words.
+
+// Filter out palindromes
+words >> Filter @w:
+    @w >> Lowercase >> lower_w.
+    lower_w >> Length >> l.
+    
+    // Ignore single letter words like 'a'
+    l >> check:
+        is <= 1: false >> Return.
+    ..
+    
+    lower_w >> Reverse >> reversed_w.
+    
+    lower_w >> check:
+        is reversed_w: true >> Return.
+        else: false >> Return.
+    ..
+.. >> palindromes.
+
+"--- Palindrome Checker ---" >> Display.
+("Original text: " + text) >> Display.
+"Palindromes found: " >> Display.
+palindromes >> ToJson >> Display.

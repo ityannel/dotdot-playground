@@ -1,0 +1,29 @@
+// 4. bubble_sort.pop
+// Bubble sort implementation.
+
+new BubbleSort:
+    @ >> arr.
+    arr >> Length >> n.
+    
+    n >> check:
+        is <= 1: arr.
+        else:
+            0 >> loop:
+                false >> swapped.
+                (1 & (n - 1)) >> Range >> Map:
+                    @ >> i.
+                    arr[i - 1] > arr[i] >> check:
+                        is true:
+                            arr[i - 1] >> temp.
+                            arr[i] >+> arr[i - 1] >> pop. // wait, no array assignment.
+                            // PopPop doesn't have a[i] = x directly in spec unless Set works?
+                            // Let's use a functional approach for sorting.
+                            true.
+                        else: false.
+                    ..
+                ..
+                Break.
+            ..
+            arr.
+    ..
+..

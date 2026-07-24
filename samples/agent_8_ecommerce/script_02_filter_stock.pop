@@ -1,0 +1,19 @@
+// script_02_filter_stock.pop
+[
+    {"id": 1, "name": "Laptop", "stock": 5},
+    {"id": 2, "name": "Mouse", "stock": 0},
+    {"id": 3, "name": "Keyboard", "stock": 2},
+    {"id": 4, "name": "Monitor", "stock": 0}
+] >> inventory.
+
+"Filtering out-of-stock items..." >> Display.
+
+inventory >> Filter:
+    @["stock"] > 0 >> Return.
+.. >> available_items.
+
+"Available items:" >> Display.
+available_items >> Map:
+    @["name"] >> Display.
+    @ >> Return.
+.. >> discard.

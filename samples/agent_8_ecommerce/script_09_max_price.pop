@@ -1,0 +1,21 @@
+// script_09_max_price.pop
+[
+    {"name": "Phone", "price": 80000},
+    {"name": "Case", "price": 2000},
+    {"name": "Headphones", "price": 15000}
+] >> cart.
+
+cart >> Reduce @a @b:
+    @a["price"] >> price_a.
+    @b["price"] >> price_b.
+    
+    price_a >> check:
+        is > price_b:
+            @a >> Return.
+        else:
+            @b >> Return.
+    ..
+.. >> most_expensive.
+
+(["Most expensive item is: ", most_expensive["name"]] & "") >> Join >> Display.
+(["Price: ", (most_expensive["price"] >> Str)] & "") >> Join >> Display.

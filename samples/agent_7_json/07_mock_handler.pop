@@ -1,0 +1,18 @@
+// 07_mock_handler.pop
+new MockApiHandler:
+    @ >> req_str.
+    req_str >> FromJson >> req.
+    
+    (req & "action") >> Get >> action.
+    action >> check:
+        is "ping":
+            {} >> resp.
+            (resp & "status" & "pong") >> Set.
+        else:
+            {} >> resp_err.
+            (resp_err & "error" & "unknown action") >> Set.
+    ..
+..
+
+"{\"action\": \"ping\"}" >> MockApiHandler >> ToJson >> Display.
+"{\"action\": \"delete\"}" >> MockApiHandler >> ToJson >> Display.

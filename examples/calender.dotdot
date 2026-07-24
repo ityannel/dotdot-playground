@@ -1,0 +1,99 @@
+"Enter Year:" >> Input >> Int >> year.
+"Enter Month (1-12):" >> Input >> Int >> month.
+
+(y) >> new LeapYear:
+    ((y % 400 == 0) || (y % 4 == 0 && y % 100 != 0)) >> Int >> Return.
+..
+
+(y & m) >> new LastDay:
+    m >> check:
+        is 2:
+            (y) >> LeapYear >> check:
+                is 1: 29 >> Return.
+                else: 28 >> Return.
+            ..
+        is [4, 6, 9, 11]:
+            30 >> Return.
+        else:
+            31 >> Return.
+        ..
+..
+
+(y & m & d) >> new TotalDays:
+    0 >> total.
+    [1, m - 1] >> Range >> do each:
+        total + ((y & @) >> LastDay) >> total.
+    ..
+    total + d >> total >> Return.
+..
+
+(y & m) >> new DayOfWeek:
+    0 >> totaltotalEver.
+    1 >> mn.
+    1 >> yr.
+
+    [yr, y - 1] >> Range >> do each:
+        (@) >> LeapYear >> check:
+            is 1:
+                totaltotalEver + 366 >> totaltotalEver.
+            else:
+                totaltotalEver + 365 >> totaltotalEver.
+        ..
+    ..
+
+    [mn, m - 1] >> Range >> do each:
+        (y & @) >> LastDay >> totaltotalEver + @ >> totaltotalEver.
+    ..
+
+    (totaltotalEver + 1) % 7 >> Return.
+..
+
+(year & month) >> new Calendar:
+    (year & month) >> LastDay >> numberOfDays.
+    (year & month) >> DayOfWeek >> dayOfStart.
+
+    (6 & 7) >> Array >> date.
+    
+    1 >> count.
+    [0, 5] >> Range >> do each:
+        @ >> i.
+        [0, 6] >> Range >> do each:
+            @ >> w.
+            check:
+                is (i * 7 + w) < dayOfStart:
+                    0 >> date[i][w].
+                is count > numberOfDays:
+                    0 >> date[i][w].
+                else:
+                    count >> date[i][w].
+                    count + 1 >> count.
+            ..
+        ..
+    ..
+
+    "\nSu Mo Tu We Th Fr Sa" >> Display.
+    
+    [0, 5] >> Range >> do each:
+        @ >> i.
+        check:
+            is i > 0 && date[i][0] == 0: 
+                1 >> Break. 
+            else:
+                "" >> row_str.
+                [0, 6] >> Range >> do each:
+                    @ >> w.
+                    check:
+                        is date[i][w] == 0:
+                            row_str + "   " >> row_str.
+                        is date[i][w] < 10:
+                            row_str + "  " + (date[i][w] >> Str) >> row_str.
+                        else:
+                            row_str + " " + (date[i][w] >> Str) >> row_str.
+                    ..
+                ..
+                row_str >> Display.
+        ..
+    ..
+..
+
+(year & month) >> Calendar.

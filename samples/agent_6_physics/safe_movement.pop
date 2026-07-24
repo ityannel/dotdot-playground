@@ -1,0 +1,35 @@
+new MoveTo:
+    @ >> args.
+    args[0] >> pos.
+    args[1] >> target_x.
+    
+    target_x >> check:
+        is < 0:
+            (1 / 0) >> dummy.
+        is > 100:
+            (1 / 0) >> dummy.
+        else:
+            target_x >> new_x.
+    ..
+    (pos & "x" & target_x) >> Set.
+..
+
+{"x": 50, "y": 10} >> player.
+
+(player & -10) >> MoveTo >> catch:
+    @ >> err.
+    "Movement Error! Out of bounds." >> Display.
+    player.
+.. >> player.
+
+"Player position after invalid move:" >> Display.
+player >> Display.
+
+(player & 80) >> MoveTo >> catch:
+    @ >> err.
+    "Movement Error! Out of bounds." >> Display.
+    player.
+.. >> player.
+
+"Player position after valid move:" >> Display.
+player >> Display.

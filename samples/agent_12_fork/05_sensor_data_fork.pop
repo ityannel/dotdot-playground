@@ -1,0 +1,42 @@
+new BackupData:
+    @ >> data.
+    data >> ToJson >> json_data.
+    ("Backing up sensor data: {}" & json_data) >> Format >> Display.
+..
+
+new CheckTemp:
+    @ >> data.
+    (data & "temp") >> Get >> temp.
+    temp >> check:
+        is > 40: "ALERT: High temperature detected!" >> Display.
+        else: "Temperature is normal." >> Display.
+    ..
+..
+
+new CheckHumidity:
+    @ >> data.
+    (data & "humidity") >> Get >> hum.
+    hum >> check:
+        is > 80: "ALERT: High humidity detected!" >> Display.
+        else: "Humidity is normal." >> Display.
+    ..
+..
+
+[
+    {"id": "1", "temp": 35, "humidity": 60},
+    {"id": "2", "temp": 45, "humidity": 85},
+    {"id": "3", "temp": 20, "humidity": 90}
+] >> sensor_readings.
+
+sensor_readings >> Map:
+    @ >> reading.
+    (reading & "id") >> Get >> sid.
+    ("--- Processing Sensor ID {} ---" & sid) >> Format >> Display.
+    reading >> Fork:
+        @ >> BackupData.
+        @ >> CheckTemp.
+        @ >> CheckHumidity.
+    ..
+.. >> dummy.
+
+"All sensor data processed." >> Display.

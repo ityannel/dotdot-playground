@@ -1,0 +1,22 @@
+// 10_fork_json.pop
+"{\"metadata\": {\"count\": 2}, \"data\": [1, 2]}" >> response_str.
+response_str >> FromJson >> response.
+
+new ProcessMetadata:
+    (@ & "metadata") >> Get >> ToJson >> m_json.
+    "Metadata: " >> m_msg.
+    m_json >+> m_msg.
+    m_msg >> Display.
+..
+
+new ProcessData:
+    (@ & "data") >> Get >> ToJson >> d_json.
+    "Data: " >> d_msg.
+    d_json >+> d_msg.
+    d_msg >> Display.
+..
+
+response >> Fork:
+    @ >> ProcessMetadata.
+    @ >> ProcessData.
+..

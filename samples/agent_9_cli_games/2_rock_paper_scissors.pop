@@ -1,0 +1,42 @@
+"Rock Paper Scissors!" >> Display.
+{"0": "rock", "1": "paper", "2": "scissors"} >> choices.
+
+new PlayRound:
+    (0 & 2) >> Random >> Str >> bot_idx.
+    (choices & bot_idx) >> Get >> bot_choice.
+    "Enter rock, paper, or scissors (or quit): " >> Input >> user_choice.
+    user_choice >> check:
+        is "quit":
+            "Bye!" >> Display.
+        else:
+            ("Bot chose %s" & bot_choice) >> Format >> Display.
+            user_choice >> check:
+                is bot_choice:
+                    "Tie!" >> Display.
+                    null >> PlayRound.
+                is "rock":
+                    bot_choice >> check:
+                        is "scissors": "You win!" >> Display.
+                        else: "You lose!" >> Display.
+                    ..
+                    null >> PlayRound.
+                is "paper":
+                    bot_choice >> check:
+                        is "rock": "You win!" >> Display.
+                        else: "You lose!" >> Display.
+                    ..
+                    null >> PlayRound.
+                is "scissors":
+                    bot_choice >> check:
+                        is "paper": "You win!" >> Display.
+                        else: "You lose!" >> Display.
+                    ..
+                    null >> PlayRound.
+                else:
+                    "Invalid input!" >> Display.
+                    null >> PlayRound.
+            ..
+    ..
+..
+
+null >> PlayRound.

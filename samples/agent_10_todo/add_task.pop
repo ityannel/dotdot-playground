@@ -1,0 +1,18 @@
+// add_task.pop
+// Demonstrates adding tasks to a list using >+> and map
+
+(int id & str title) >> new CreateTask:
+    {"id": id, "title": title, "done": false}.
+..
+
+[] >> tasks.
+(1 & "Buy Milk") >> CreateTask >+> tasks.
+(2 & "Read Book") >> CreateTask >+> tasks.
+(3 & "Write Code") >> CreateTask >+> tasks.
+
+"--- Initial Tasks ---" >> Display.
+tasks >> Map @t:
+    "Task: " >+> @t["title"] >> Display.
+..
+
+"Total tasks: " >+> (tasks >> Length >> Str) >> Display.

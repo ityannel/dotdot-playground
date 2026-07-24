@@ -1,0 +1,46 @@
+new ApplyGravity:
+    @ >> obj.
+    obj["y"] - 9 >> new_y.
+    new_y >> check:
+        is < 0:
+            0 >> new_y.
+        else:
+            new_y >> new_y.
+    ..
+    (obj & "y" & new_y) >> Set >> Return.
+..
+
+[
+    {"id": "box1", "y": 20},
+    {"id": "box2", "y": 5},
+    {"id": "box3", "y": 100}
+] >> objects.
+
+"Initial states:" >> Display.
+objects >> Display.
+
+objects >> Map:
+    @ >> ApplyGravity >> Return.
+.. >> objects.
+
+"After 1 tick of gravity:" >> Display.
+objects >> Display.
+
+new MaxHeight:
+    @ >> arr.
+    arr[0]["y"] >> y1.
+    arr[1]["y"] >> y2.
+    y1 >> check:
+        is > y2:
+            arr[0] >> Return.
+        else:
+            arr[1] >> Return.
+    ..
+..
+
+objects >> Reduce:
+    @ >> MaxHeight >> Return.
+.. >> highest_obj.
+
+"Highest object:" >> Display.
+highest_obj >> Display.

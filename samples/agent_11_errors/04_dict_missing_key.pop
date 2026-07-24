@@ -1,0 +1,21 @@
+new ProcessUser:
+    @ >> user.
+    user["age"] >> age.
+    (age + 10).
+..
+
+new SafeUserProcess:
+    @ >> user.
+    user >> ProcessUser >> catch:
+        @ >> err.
+        "Missing age key! Using default age 10." >> Display.
+        10 >> Return.
+    ..
+..
+
+[{"name": "Alice", "age": 20}, {"name": "Bob"}] >> Map:
+    @ >> SafeUserProcess >> Return.
+.. >> ages.
+
+"Ages + 10:" >> Display.
+ages >> Display.

@@ -1,0 +1,23 @@
+"Speed Math!" >> Display.
+
+new Play:
+    (10 & 99) >> Random >> x.
+    (10 & 99) >> Random >> y.
+    (x & y) >> Add >> target.
+    
+    ("Quick! %s + %s = ?" & x & y) >> Format >> Input >> Int >> ans.
+    ans >> check:
+        is target:
+            "Great job!" >> Display.
+            null >> Play.
+        else:
+            ("Wrong, it was %s" & target) >> Format >> Display.
+            "Play again? (y/n): " >> Input >> play_again.
+            play_again >> check:
+                is "y": null >> Play.
+                else: "Bye!" >> Display.
+            ..
+    ..
+..
+
+null >> Play.

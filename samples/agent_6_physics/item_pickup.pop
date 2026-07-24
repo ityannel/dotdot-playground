@@ -1,0 +1,30 @@
+new ApplyItem:
+    @ >> arr.
+    arr[0] >> player.
+    arr[1] >> item.
+    
+    item["type"] >> check:
+        is "potion":
+            player["hp"] + item["value"] >> new_hp.
+            (player & "hp" & new_hp) >> Set >> Return.
+        is "weapon":
+            player["atk"] + item["value"] >> new_atk.
+            (player & "atk" & new_atk) >> Set >> Return.
+        else:
+            player >> Return.
+    ..
+..
+
+[
+    {"hp": 50, "atk": 10},
+    {"type": "potion", "value": 20},
+    {"type": "weapon", "value": 5},
+    {"type": "junk", "value": 0}
+] >> data.
+
+data >> Reduce:
+    @ >> ApplyItem >> Return.
+.. >> final_player.
+
+"Player after picking up items:" >> Display.
+final_player >> Display.

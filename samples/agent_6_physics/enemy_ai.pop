@@ -1,0 +1,24 @@
+new DecideAction:
+    @ >> enemy.
+    enemy["hp"] >> check:
+        is < 20:
+            (enemy & "action" & "Flee") >> Set >> Return.
+        is > 80:
+            (enemy & "action" & "Attack") >> Set >> Return.
+        else:
+            (enemy & "action" & "Defend") >> Set >> Return.
+    ..
+..
+
+[
+    {"id": "e1", "hp": 10},
+    {"id": "e2", "hp": 50},
+    {"id": "e3", "hp": 90}
+] >> enemies.
+
+enemies >> Map:
+    @ >> DecideAction >> Return.
+.. >> enemies.
+
+"Enemies actions:" >> Display.
+enemies >> Display.

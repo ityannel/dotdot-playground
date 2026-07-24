@@ -1,0 +1,38 @@
+// 9. numerical_integration.pop
+// Numerical Integration using the Trapezoidal Rule for f(x) = x^2.
+
+new Func:
+    @ * @.
+..
+
+new TrapezoidalRule:
+    @ >> args.
+    args[0] >> a.
+    args[1] >> b.
+    args[2] >> n.
+    
+    (b - a) / (n * 1.0) >> dx.
+    
+    (1 & (n - 1)) >> Range >> Map:
+        a + (@ * dx) >> x.
+        x >> Func >> fx.
+        fx * 2.0.
+    .. >> middle_terms.
+    
+    middle_terms >> check:
+        is null: 0.
+        else:
+            middle_terms >> Reduce:
+                @[0] + @[1].
+            ..
+    .. >> sum_middle.
+    
+    a >> Func >> fa.
+    b >> Func >> fb.
+    
+    (dx / 2.0) * (fa + fb + sum_middle).
+..
+
+(0 & 10 & 100) >> TrapezoidalRule >> area.
+"Integral of x^2 from 0 to 10 (n=100): " >> out.
+(area >> Str) >+> out >> Display.

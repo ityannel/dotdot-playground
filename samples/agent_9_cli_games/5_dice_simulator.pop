@@ -1,0 +1,17 @@
+"Dice Roller!" >> Display.
+
+new Roll:
+    "Press Enter to roll (or type 'quit'): " >> Input >> cmd.
+    cmd >> check:
+        is "quit":
+            "Bye!" >> Display.
+        else:
+            (1 & 6) >> Random >> d1.
+            (1 & 6) >> Random >> d2.
+            (d1 & d2) >> Add >> total.
+            ("You rolled %s and %s (Total: %s)" & d1 & d2 & total) >> Format >> Display.
+            null >> Roll.
+    ..
+..
+
+null >> Roll.

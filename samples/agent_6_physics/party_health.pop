@@ -1,0 +1,37 @@
+new HealChar:
+    @ >> char.
+    char["hp"] + 50 >> new_hp.
+    new_hp >> check:
+        is > char["max_hp"]:
+            char["max_hp"] >> new_hp.
+        else:
+            new_hp >> new_hp.
+    ..
+    (char & "hp" & new_hp) >> Set >> Return.
+..
+
+new IsDead:
+    @["hp"] <= 0 >> Return.
+..
+
+[
+    {"name": "Knight", "hp": 10, "max_hp": 100},
+    {"name": "Mage", "hp": 0, "max_hp": 60},
+    {"name": "Archer", "hp": 40, "max_hp": 80}
+] >> party.
+
+party >> Map:
+    @ >> HealChar >> Return.
+.. >> party.
+
+"Party after healing:" >> Display.
+party >> Display.
+
+party >> Filter:
+    @ >> IsDead >> Return.
+.. >> dead_members.
+
+dead_members >> Fork:
+    @ >> Length >> Display.
+    @ >> Display.
+..

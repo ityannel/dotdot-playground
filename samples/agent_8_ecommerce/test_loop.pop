@@ -1,0 +1,7 @@
+// test_loop.pop
+0 >> total.
+[1, 2, 3] >> loop:
+    item.
+    (total & item) >> Add >> total.
+..
+total >> Display.

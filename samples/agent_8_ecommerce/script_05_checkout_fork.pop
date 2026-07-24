@@ -1,0 +1,20 @@
+// script_05_checkout_fork.pop
+{
+    "user_id": 101, 
+    "total": 4500, 
+    "email": "customer@example.com",
+    "currency": "USD",
+    "payment_method": "CreditCard"
+} >> order.
+
+"Starting checkout process..." >> Display.
+"Validating order..." >> Display.
+
+order >> Fork:
+    @ >> o1 >> (["Processing ", o1["payment_method"], " payment for amount: ", (o1["total"] >> Str), " ", o1["currency"]] & "") >> Join >> Display.
+    @ >> o2 >> (["Updating order history for user ID: ", (o2["user_id"] >> Str)] & "") >> Join >> Display.
+    @ >> o3 >> (["Sending receipt to email: ", o3["email"]] & "") >> Join >> Display.
+    @ >> o4 >> (["Notifying warehouse to prepare order for user ", (o4["user_id"] >> Str)] & "") >> Join >> Display.
+.. >> results.
+
+"Checkout complete. Thank you for your order." >> Display.

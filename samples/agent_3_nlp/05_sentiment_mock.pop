@@ -1,0 +1,41 @@
+// 05_sentiment_mock.pop
+// Simulates a basic sentiment analysis by scoring words based on a dictionary.
+
+"The new movie was absolutely fantastic and wonderful. However, the ending was terrible and bad." >> text.
+
+// Define our mock sentiment lexicon
+{} >> lexicon.
+(lexicon & "fantastic" & 2) >> Set >> lex1.
+(lex1 & "wonderful" & 2) >> Set >> lex2.
+(lex2 & "good" & 1) >> Set >> lex3.
+(lex3 & "terrible" & -2) >> Set >> lex4.
+(lex4 & "bad" & -1) >> Set >> sentiment_dict.
+
+// Clean and split the text
+(text & "." & "") >> Replace >> c1.
+(c1 & "," & "") >> Replace >> c2.
+(c2 & " ") >> Split >> words.
+
+// Reduce to calculate total sentiment score
+[0] >> reduce_arr.
+words >> Map @w:
+    @w >> Lowercase >+> reduce_arr.
+..
+
+reduce_arr >> Reduce @score @word:
+    (sentiment_dict & @word) >> Get >> catch:
+        0 // If word not found, score is 0
+    .. >> word_score.
+    
+    (@score + word_score) >> Return.
+.. >> total_score.
+
+"--- Sentiment Analysis ---" >> Display.
+("Text: " + text) >> Display.
+("Total Score: " + (total_score >> Str)) >> Display.
+
+total_score >> check:
+    is > 0: "Overall Sentiment: POSITIVE" >> Display.
+    is < 0: "Overall Sentiment: NEGATIVE" >> Display.
+    else: "Overall Sentiment: NEUTRAL" >> Display.
+..

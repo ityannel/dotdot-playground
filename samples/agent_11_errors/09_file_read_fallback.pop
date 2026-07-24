@@ -1,0 +1,15 @@
+new SafeRead:
+    @ >> path.
+    path >> ReadFile >> catch:
+        @ >> err.
+        "File not found: " >+> path >> Display.
+        "default_content" >> Return.
+    ..
+..
+
+["valid_dummy.txt", "missing_file.txt"] >> Map:
+    @ >> SafeRead >> Return.
+.. >> res.
+
+"Read results:" >> Display.
+res >> Display.

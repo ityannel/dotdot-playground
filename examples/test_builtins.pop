@@ -1,0 +1,39 @@
+// 🎨 Dot dot へようこそ！
+// パイプライン（>>）でデータを流して加工する言語です。
+
+// ── リスト操作 ──
+[3, 1, 4, 1, 5, 9, 2, 6] >> Sort >> Reverse >> data.
+"円周率の数字（降順）: {0}" & data >> Format >> Display.
+data >> Length >> len.
+"要素数: {0}" & len >> Format >> Display.
+
+// ── 文字列操作 ──
+"hello, dot dot world" >> Uppercase >> Display.
+"HELLO" >> Lowercase >> Display.
+"hello world" & " " >> Split >> Display.
+"Dot dot" & "Dot" & "ドット" >> Replace >> Display.
+
+// ── 数学 ──
+[10, 25, 37, 42, 8] >> Max >> max_val.
+[10, 25, 37, 42, 8] >> Min >> min_val.
+"最大: {0}  最小: {1}" & max_val & min_val >> Format >> Display.
+-42 >> Abs >> Display.
+3.14159 >> Round >> Display.
+
+// ── 日時 ──
+"now" >> Now >> Display.
+
+// ── JSON ──
+{"name": "Dot dot", "version": 0.1} >> ToJson >> Display.
+
+// ── check 構文 ──
+42 >> check:
+    is > 100:  "大きい！" >> Display.
+    is 42:     "人生、宇宙、すべての答え！" >> Display.
+    else:      "普通の数字" >> Display.
+..
+
+// ── ループ ──
+[1, 5] >> Range >> do each:
+    "{0}番目のドット" & @ >> Format >> Display.
+..

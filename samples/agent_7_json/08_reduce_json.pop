@@ -1,0 +1,19 @@
+// 08_reduce_json.pop
+"[{\"price\": 100}, {\"price\": 250}, {\"price\": 350}]" >> cart_str.
+cart_str >> FromJson >> cart.
+
+cart >> Map:
+    (@ & "price") >> Get.
+.. >> prices.
+
+prices >> Reduce:
+    @ >> bundle.
+    bundle[0] >> total.
+    bundle[1] >> price.
+    (total & price) >> Add.
+.. >> total_price.
+
+total_price >> Str >> tp_str.
+"Total Price: " >> msg.
+tp_str >+> msg.
+msg >> Display.

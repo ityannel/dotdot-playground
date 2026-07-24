@@ -1,0 +1,5 @@
+[{"a": 1, "b": 2}] >> Map @item:
+    item["a"] >> a.
+    item["b"] >> b.
+    (a + b) >> Return.
+.. >> Display.

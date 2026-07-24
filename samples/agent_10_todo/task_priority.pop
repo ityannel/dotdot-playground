@@ -1,0 +1,21 @@
+// task_priority.pop
+// Demonstrates check block to assign priorities based on due days
+
+[] >> tasks.
+{"id": 1, "title": "Buy Milk", "days_left": 1} >+> tasks.
+{"id": 2, "title": "Read Book", "days_left": 5} >+> tasks.
+{"id": 3, "title": "Write Code", "days_left": -1} >+> tasks.
+
+tasks >> Map @t:
+    @t["days_left"] >> check:
+        is < 0:
+            (@t & "priority" & "URGENT") >> Set.
+        is <= 2:
+            (@t & "priority" & "HIGH") >> Set.
+        else:
+            (@t & "priority" & "NORMAL") >> Set.
+    ..
+.. >> prioritized_tasks.
+
+"--- Tasks with Priority ---" >> Display.
+prioritized_tasks >> Display.

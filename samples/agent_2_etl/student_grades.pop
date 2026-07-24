@@ -1,0 +1,35 @@
+// student_grades.pop
+[
+    {"name": "Alice", "math": 85, "science": 92, "english": 88},
+    {"name": "Bob", "math": 60, "science": 55, "english": 70},
+    {"name": "Charlie", "math": 95, "science": 98, "english": 90},
+    {"name": "David", "math": 40, "science": 45, "english": 50}
+] >> students.
+
+students >> Map @s:
+    ((s["math"] + s["science"] + s["english"]) / 3) >> avg.
+    {"name": s["name"], "gpa": avg} >> Return.
+.. >> gpa_list.
+
+gpa_list >> Filter @g:
+    g["gpa"] >> check:
+        is >= 60: true >> Return.
+        else: false >> Return.
+    ..
+.. >> passed.
+
+gpa_list >> Map @g:
+    g["gpa"] >> Return.
+.. >> all_gpas.
+
+all_gpas >> Reduce @acc @val:
+    acc >> check:
+        is > val: acc >> Return.
+        else: val >> Return.
+    ..
+.. >> highest_gpa.
+
+"Student Grades ETL" >> Display.
+$"Highest GPA: {highest_gpa}" >> Display.
+"Students who passed:" >> Display.
+passed >> ToJson >> Display.

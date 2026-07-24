@@ -1,0 +1,54 @@
+// inventory_etl.pop
+[
+    {"item": "A", "type": "stock", "qty": 100},
+    {"item": "B", "type": "stock", "qty": 50},
+    {"item": "A", "type": "sale", "qty": 20},
+    {"item": "A", "type": "shipment", "qty": 50},
+    {"item": "C", "type": "stock", "qty": 10},
+    {"item": "B", "type": "sale", "qty": 45}
+] >> events.
+
+{} >> inventory.
+[] >> items.
+
+events >!> @ev:
+    ev["item"] >> i.
+    ev["type"] >> t.
+    ev["qty"] >> q.
+    
+    (items & i) >> Contains >> has_i.
+    has_i >> check:
+        is false:
+            i >+> items.
+            (inventory & i & 0) >> Set >> inventory.
+        else:
+            0 >> n.
+    ..
+
+    (inventory & i) >> Get >> current_qty.
+
+    t >> check:
+        is "stock":
+            (inventory & i & q) >> Set >> inventory.
+        is "sale":
+            (inventory & i & (current_qty - q)) >> Set >> inventory.
+        is "shipment":
+            (inventory & i & (current_qty + q)) >> Set >> inventory.
+        else:
+            0 >> n.
+    ..
+..
+
+"Inventory Status:" >> Display.
+inventory >> ToJson >> Display.
+
+"Low Stock Alerts (< 10):" >> Display.
+items >!> @i:
+    (inventory & i) >> Get >> q.
+    q >> check:
+        is < 10:
+            $"ALERT: {i} is low on stock ({q})" >> Display.
+        else:
+            0 >> n.
+    ..
+..

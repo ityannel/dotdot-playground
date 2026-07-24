@@ -1,0 +1,22 @@
+// script_10_loyalty.pop
+3500 >> cart_total.
+1200 >> user_points.
+100 >> points_to_cash_rate.
+
+(user_points / points_to_cash_rate) >> max_discount.
+
+max_discount >> check:
+    is > cart_total:
+        cart_total >> discount_applied.
+    else:
+        max_discount >> discount_applied.
+..
+
+(cart_total - discount_applied) >> amount_to_pay.
+(user_points - (discount_applied * points_to_cash_rate)) >> remaining_points.
+
+(["Cart Total: $", (cart_total >> Str)] & "") >> Join >> Display.
+(["Points Used: ", ((discount_applied * points_to_cash_rate) >> Str)] & "") >> Join >> Display.
+(["Discount: $", (discount_applied >> Str)] & "") >> Join >> Display.
+(["Amount to Pay: $", (amount_to_pay >> Str)] & "") >> Join >> Display.
+(["Remaining Points: ", (remaining_points >> Str)] & "") >> Join >> Display.

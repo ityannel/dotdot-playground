@@ -1,0 +1,17 @@
+["Data1", null, "Data2", null, "Data3"] >> raw_data.
+
+"--- Filtering Nulls ---" >> Display.
+raw_data >> Filter:
+    @ >> Type >> check:
+        is "list": false >> Return.
+    ..
+    true >> Return.
+.. >> clean_data.
+
+"Original: " >> out1.
+(raw_data >> ToJson) >+> out1.
+out1 >> Display.
+
+"Cleaned: " >> out2.
+(clean_data >> ToJson) >+> out2.
+out2 >> Display.

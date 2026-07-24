@@ -1,0 +1,42 @@
+// 複雑で実用的な Dot dot コード例：商品の税込み・割引計算とレポート出力
+
+// 1. 関数の定義：税金計算（2つの引数を受け取る）
+(int price & int rate) >> new Calc_tax:
+    // @ を使ったストリーム計算で税額を出し、変数 tax に束縛
+    price * rate >> @ / 100 >> tax.
+    price + tax >> Return.
+..
+
+// 2. 関数の定義：金額に応じた割引額の計算
+(int amount) >> new Get_discount:
+    amount >> check:
+        is @ >= 1000: 200 >> Return.
+        is @ >= 500:  50  >> Return.
+        else:         0   >> Return.
+    ..
+..
+
+// 3. メインの処理パイプライン
+"--- Processing Orders ---" >> Display.
+
+// 3つの商品価格をループ処理
+[300, 600, 1200] >> do each:
+    base_price. // ループで流れてきた現在の値を base_price に束縛
+    
+    // 割引額を計算
+    base_price >> Get_discount >> discount.
+    
+    // 割引後の価格を計算
+    base_price - discount >> discounted_price.
+    
+    // 消費税10%を適用して最終価格を計算
+    discounted_price & 10 >> Calc_tax >> final_price.
+    
+    // fork を使ってレポート用データ（辞書）を並行構築し、出力する
+    // 外のスコープで定義した base_price や discount を参照している
+    base_price >> fork:
+        route original_price >> @ * 1.
+        route discount_applied >> discount * 1.
+        route final_price >> final_price * 1.
+    .. >> join pack >> Display.
+..

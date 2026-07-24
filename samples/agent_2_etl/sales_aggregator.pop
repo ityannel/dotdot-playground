@@ -1,0 +1,39 @@
+// sales_aggregator.pop
+[
+    {"id": 1, "amount": 150, "category": "electronics"},
+    {"id": 2, "amount": 50, "category": "books"},
+    {"id": 3, "amount": 200, "category": "electronics"},
+    {"id": 4, "amount": 20, "category": "books"},
+    {"id": 5, "amount": 300, "category": "furniture"}
+] >> raw_sales.
+
+raw_sales >> Map @sale:
+    sale["amount"] >> Return.
+.. >> amounts.
+
+amounts >> Reduce @acc @val:
+    (acc + val) >> Return.
+.. >> total_sales.
+
+amounts >> Length >> count.
+(total_sales / count) >> avg_sale.
+
+{} >> grouped.
+raw_sales >!> @item:
+    item["category"] >> cat.
+    item["amount"] >> amt.
+    (grouped & cat) >> Contains >> has_cat.
+    has_cat >> check:
+        is true:
+            (grouped & cat) >> Get >> cur.
+            (grouped & cat & (cur + amt)) >> Set >> grouped.
+        else:
+            (grouped & cat & amt) >> Set >> grouped.
+    ..
+..
+
+"--- ETL Results ---" >> Display.
+$"Total Sales: {total_sales}" >> Display.
+$"Average Sale: {avg_sale}" >> Display.
+"Grouped Sales:" >> Display.
+grouped >> ToJson >> Display.

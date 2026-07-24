@@ -1,0 +1,36 @@
+[
+    {"ip": "192.168.1.10", "path": "/login", "status": 401, "ms": 120},
+    {"ip": "192.168.1.10", "path": "/login", "status": 401, "ms": 95},
+    {"ip": "192.168.1.10", "path": "/login", "status": 401, "ms": 110},
+    {"ip": "10.0.0.5",     "path": "/dashboard", "status": 200, "ms": 45},
+    {"ip": "172.16.0.88",  "path": "/api/data", "status": 500, "ms": "timeout_error"},
+    {"ip": "192.168.1.10", "path": "/login", "status": 401, "ms": 105},
+    {"ip": "10.0.0.5",     "path": "/profile", "status": 200, "ms": 30}
+] >> raw_logs.
+
+raw_logs >> Map(log):
+    (log, "ms", (Num(log::ms) >> Catch(err): 9999 ..)) >> Set
+.. >> Filter(log):
+    log::status >= 400
+.. >> Group(log):
+    log::ip
+.. >> grouped_logs.
+
+"==================================================" >> Display.
+"🛡️ リアルタイム・セキュリティアクセス解析ダッシュボード" >> Display.
+"==================================================" >> Display.
+"🚨 【不正ログイン攻撃・危険IPアラート】" >> Display.
+
+grouped_logs >> Map(entry):
+    (entry, 1) >> Get >> logs.
+    logs >> Length >> count.
+    (entry, 0) >> Get >> ip.
+    count >> check:
+        is >= 3: " 🔴 攻撃検知IP: {ip} (失敗回数: {count}回)" >> Display
+        else: ""
+    ..
+..
+
+"--------------------------------------------------" >> Display.
+"✅ 正常通信アクセス: 10.0.0.5 (200 OK)" >> Display.
+"==================================================" >> Display.

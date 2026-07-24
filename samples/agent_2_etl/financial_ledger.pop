@@ -1,0 +1,38 @@
+// financial_ledger.pop
+[
+    {"type": "income", "amount": 5000, "desc": "Salary"},
+    {"type": "expense", "amount": 1500, "desc": "Rent"},
+    {"type": "expense", "amount": 200, "desc": "Groceries"},
+    {"type": "income", "amount": 300, "desc": "Freelance"},
+    {"type": "expense", "amount": 100, "desc": "Utilities"}
+] >> ledger.
+
+0 >> total_income.
+0 >> total_expense.
+
+ledger >!> @tx:
+    tx["type"] >> t.
+    tx["amount"] >> amt.
+    t >> check:
+        is "income":
+            (total_income + amt) >> total_income.
+        is "expense":
+            (total_expense + amt) >> total_expense.
+        else:
+            0 >> nothing.
+    ..
+..
+
+(total_income - total_expense) >> balance.
+
+"--- Financial Summary ---" >> Display.
+$"Total Income: ${total_income}" >> Display.
+$"Total Expense: ${total_expense}" >> Display.
+$"Net Balance: ${balance}" >> Display.
+
+balance >> check:
+    is < 0:
+        "WARNING: Negative Balance!" >> Display.
+    else:
+        "Finances are healthy." >> Display.
+..

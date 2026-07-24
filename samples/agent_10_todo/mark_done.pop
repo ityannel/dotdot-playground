@@ -1,0 +1,24 @@
+// mark_done.pop
+// Demonstrates using Map to modify a task's status
+
+[] >> tasks.
+{"id": 1, "title": "Buy Milk", "done": false} >+> tasks.
+{"id": 2, "title": "Read Book", "done": false} >+> tasks.
+{"id": 3, "title": "Write Code", "done": false} >+> tasks.
+
+"--- Before Marking Done ---" >> Display.
+tasks >> Display.
+
+// Mark task with ID 2 as done
+tasks >> Map:
+    @ >> t.
+    t["id"] >> check:
+        is 2: 
+            (t & "done" & true) >> Set.
+        else: 
+            t.
+    ..
+.. >> updated_tasks.
+
+"--- After Marking Done ---" >> Display.
+updated_tasks >> Display.

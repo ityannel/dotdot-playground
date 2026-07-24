@@ -1,0 +1,15 @@
+new TryParse:
+    @ >> text.
+    text >> FromJson >> catch:
+        @ >> err.
+        "Malformed JSON, fallback to empty dict" >> Display.
+        {} >> Return.
+    ..
+..
+
+["{\"key\": 1}", "bad json"] >> Map:
+    @ >> TryParse >> Return.
+.. >> res.
+
+"Parsed objects:" >> Display.
+res >> Display.

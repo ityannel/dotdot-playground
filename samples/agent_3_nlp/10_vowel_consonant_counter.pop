@@ -1,0 +1,49 @@
+// 10_vowel_consonant_counter.pop
+// Counts the number of vowels and consonants in a given text.
+
+"PopPop is a data flow language that makes text processing incredibly easy and readable." >> text.
+
+(text >> Lowercase) >> lower_text.
+
+(lower_text & " ") >> Split >> words.
+
+// Combine into one continuous string without spaces
+(words & "") >> Join >> no_space_text.
+
+// We want to count vowels.
+["a", "e", "i", "o", "u"] >> vowels.
+
+// Create an array of all characters
+no_space_text >> Length >> text_len.
+(0 & text_len) >> Range >> indices.
+
+indices >> Map @i:
+    (no_space_text & @i & (@i + 1)) >> Slice >> Return.
+.. >> chars.
+
+// Prepare array for Reduce (prepend initial counts [0, 0])
+[] >> reduce_arr.
+[0, 0] >+> reduce_arr.
+chars >> Map @c:
+    @c >+> reduce_arr.
+..
+
+reduce_arr >> Reduce @acc @char:
+    @acc[0] >> v_count.
+    @acc[1] >> c_count.
+    
+    (vowels & @char) >> Contains >> is_vowel.
+    is_vowel >> check:
+        is true:
+            // Return updated counts [v+1, c]
+            ((v_count + 1) & c_count) >> Return.
+        else:
+            // Return updated counts [v, c+1]
+            (v_count & (c_count + 1)) >> Return.
+    ..
+.. >> final_counts.
+
+"--- Vowels vs Consonants ---" >> Display.
+("Text: " + text) >> Display.
+("Vowels: " + (final_counts[0] >> Str)) >> Display.
+("Consonants (incl punctuation): " + (final_counts[1] >> Str)) >> Display.

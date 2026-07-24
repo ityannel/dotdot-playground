@@ -1,0 +1,22 @@
+// count_completed.pop
+// Demonstrates using Map and Reduce to count completed tasks
+
+[] >> tasks.
+{"id": 1, "title": "Buy Milk", "done": true} >+> tasks.
+{"id": 2, "title": "Read Book", "done": false} >+> tasks.
+{"id": 3, "title": "Write Code", "done": true} >+> tasks.
+{"id": 4, "title": "Cook Dinner", "done": true} >+> tasks.
+
+tasks >> Map:
+    @["done"] >> check:
+        is true: 1.
+        else: 0.
+    ..
+.. >> counts.
+
+counts >> Reduce @acc @item:
+    (@acc & @item) >> Add.
+.. >> total_completed.
+
+"Total completed tasks: " >> Display.
+total_completed >> Display.

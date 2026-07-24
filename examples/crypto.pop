@@ -1,0 +1,35 @@
+"==========================================" >> Display.
+"    🚀 Crypto Price Ticker (Parallel)     " >> Display.
+"==========================================" >> Display.
+"Fetching real-time data from Binance..." >> Display.
+
+// 1. 並列処理 (fork) で3つのAPIを同時に叩く！
+["BTCUSDT", "ETHUSDT", "SOLUSDT"] >> fork:
+    symbol.
+    "https://api.binance.com/api/v3/ticker/price?symbol={0}" & symbol >> Format >> url.
+    
+    // エラーハンドリング (catch) で通信エラーに備える
+    url >> Fetch >> catch:
+        err.
+        {"price": "Error"} >> ToJson. // API失敗時のフォールバックJSON
+    .. >> FromJson >> data.
+    
+    data & "price" >> Get >> price_str.
+    
+    // 辞書リテラルで結果をまとめる
+    {"coin": symbol, "price": price_str} >> Return.
+.. >> results.
+
+"------------------------------------------" >> Display.
+
+// 2. 取得した辞書データをループで表示
+results >> do each:
+    @ >> item. // @ は各行で上書きされるため、一時変数に保存
+    item & "coin" >> Get >> coin.
+    item & "price" >> Get >> price.
+    
+    // 辞書を直接 Format に渡して {coin} や {price} を展開する
+    "💰 {coin} : ${price}" & item >> Format >> Display.
+..
+
+"==========================================" >> Display.

@@ -1,0 +1,43 @@
+// user_activity.pop
+[
+    {"user": "Alice", "minutes": 120},
+    {"user": "Bob", "minutes": 45},
+    {"user": "Charlie", "minutes": 200},
+    {"user": "Alice", "minutes": 30},
+    {"user": "Bob", "minutes": 60}
+] >> activities.
+
+{} >> user_totals.
+[] >> unique_users.
+
+activities >!> @act:
+    act["user"] >> u.
+    act["minutes"] >> m.
+    (user_totals & u) >> Contains >> has_u.
+    has_u >> check:
+        is true:
+            (user_totals & u) >> Get >> current_m.
+            (user_totals & u & (current_m + m)) >> Set >> user_totals.
+        else:
+            (user_totals & u & m) >> Set >> user_totals.
+            u >+> unique_users.
+    ..
+..
+
+"" >> max_user.
+0 >> max_mins.
+
+unique_users >!> @u:
+    (user_totals & u) >> Get >> m.
+    m >> check:
+        is > max_mins:
+            m >> max_mins.
+            u >> max_user.
+        else:
+            0 >> nothing.
+    ..
+..
+
+"User Totals:" >> Display.
+user_totals >> ToJson >> Display.
+$"Most Active User: {max_user} with {max_mins} minutes." >> Display.

@@ -1,0 +1,14 @@
+[1, 2, 3] >> Map:
+    @ * 2 >> Return.
+.. >> Display.
+
+[1, 2, 3, 4] >> Filter:
+    @ >> check:
+        is > 2: true >> Return.
+        else: false >> Return.
+    ..
+.. >> Display.
+
+[1, 2, 3] >> Reduce:
+    (@[0] + @[1]) >> Return.
+.. >> Display.

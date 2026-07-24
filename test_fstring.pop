@@ -1,0 +1,2 @@
+100 >> total.
+$"Total: {total}" >> Display.
