@@ -62,9 +62,9 @@ score >> check:
 ..
 ```
 
-**置換変数の指定 (`check(var):` / `check @var:`):**
-`check` の直後に括弧 `(var)` または `@var` を記述することで、チェック対象のデータに名前を付けてブロック内で参照できます。
-```dotdot
+**置換変数の指定 (`check(var):`):**
+`check` の直後に括弧 `(var)` を記述することで、チェック対象のデータに名前を付けてブロック内で参照できます（※変数指定は括弧形式 `check(var):` のみ対応）。
+```poppop
 score >> check(val):
     is >= 90: $"High score: {val}" >> Display.
     is >= 70: $"Good score: {val}" >> Display.

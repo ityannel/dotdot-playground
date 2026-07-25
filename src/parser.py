@@ -248,9 +248,6 @@ class Parser:
                     var_name = self.current().value
                     self.advance()
                 self.expect('RPAREN')
-            elif self.current() and self.current().type in ('IMPLICIT_VAR', 'VARIABLE', 'IDENTIFIER'):
-                var_name = self.current().value
-                self.advance()
 
             self.expect('COLON')
             branches = []
