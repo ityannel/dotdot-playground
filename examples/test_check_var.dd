@@ -1,0 +1,22 @@
+// Test check with alias variables in parens check(var): or check @var:
+
+"--- Test 1: check(score): ---" >> Display.
+85 >> check(score):
+    is >= 90: $"Excellent: {score}" >> Display.
+    is >= 70: $"Good: {score}" >> Display.
+    else:     $"Failed: {score}" >> Display.
+..
+
+"--- Test 2: check(x) inline inside Map ---" >> Display.
+[10, 50, 100] >> Map @val:
+    @val >> check(x):
+        is >= 50: $"Pass: {x}" >> Return.
+        else:     $"Fail: {x}" >> Return.
+    .. >> Return.
+.. >> Display.
+
+"--- Test 3: check @val: ---" >> Display.
+"hello" >> check @val:
+    is "hello": $"Matched string: {@val}" >> Display.
+    else:       "Not matched" >> Display.
+..

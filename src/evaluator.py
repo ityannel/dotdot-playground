@@ -540,12 +540,19 @@ class Evaluator:
 
     async def eval_CheckBlock(self, node: CheckBlock, env: Environment):
         val = env.get_current()
+        check_env = Environment(parent=env)
+        check_env.set_current(val)
+        if hasattr(node, 'var_name') and node.var_name:
+            clean_name = node.var_name.lstrip('@')
+            check_env.set_var(clean_name, val)
+            check_env.set_var('@' + clean_name, val)
+
         for branch in node.branches:
             if branch.condition is None: # else branch
-                return await self.eval(branch.block, env)
+                return await self.eval(branch.block, check_env)
             
             # Evaluate the condition expression
-            cond_result = await self.eval(branch.condition, env)
+            cond_result = await self.eval(branch.condition, check_env)
             
             # Smart check: If it's an explicit boolean expression, use its truth value.
             # Otherwise, use implicit equality against the incoming val.
@@ -562,8 +569,8 @@ class Evaluator:
                         pass
                 
             if is_match:
-                env.set_current(val)
-                return await self.eval(branch.block, env)
+                check_env.set_current(val)
+                return await self.eval(branch.block, check_env)
         return val
 
     async def eval_LoopBlock(self, node: LoopBlock, env: Environment):

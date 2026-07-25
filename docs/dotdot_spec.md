@@ -61,9 +61,21 @@ score >> check:
     else:     "C" >> Display.
 ..
 ```
+
+**置換変数の指定 (`check(var):` / `check @var:`):**
+`check` の直後に括弧 `(var)` または `@var` を記述することで、チェック対象のデータに名前を付けてブロック内で参照できます。
+```dotdot
+score >> check(val):
+    is >= 90: $"High score: {val}" >> Display.
+    is >= 70: $"Good score: {val}" >> Display.
+    else:     $"Low score: {val}" >> Display.
+..
+```
+
 **評価ルール**:
 *   `is` キーワードの後に条件演算子を記述した場合、直前のデータに対して比較が行われます。
 *   値のみ（例: `is 0:`）を記述した場合、完全一致（`==`）がテストされます。
+*   `check(val):` を使用した場合、ブロック内で `val` （または `@val`）としてデータを参照できます。
 *   どの条件にも合致しない場合は `else:` ブロックが実行されます。
 
 ### 3.2. イテレーション (`do each`)

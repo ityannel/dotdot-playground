@@ -241,6 +241,17 @@ class Parser:
 
         if curr.type == 'CHECK':
             self.advance()
+            var_name = None
+            if self.current() and self.current().type == 'LPAREN':
+                self.advance()
+                if self.current() and self.current().type in ('VARIABLE', 'IDENTIFIER', 'IMPLICIT_VAR'):
+                    var_name = self.current().value
+                    self.advance()
+                self.expect('RPAREN')
+            elif self.current() and self.current().type in ('IMPLICIT_VAR', 'VARIABLE', 'IDENTIFIER'):
+                var_name = self.current().value
+                self.advance()
+
             self.expect('COLON')
             branches = []
             while self.current() and self.current().type in ('IS', 'ELSE'):
@@ -259,7 +270,7 @@ class Parser:
                     block = self.parse_block({'END'})
                     branches.append(Branch(curr.line, curr.column, None, block))
             self.expect('END')
-            return CheckBlock(line, col, branches)
+            return CheckBlock(line, col, branches, var_name)
 
         if curr.type == 'FORK':
             self.advance()

@@ -103,6 +103,7 @@ class Branch(ASTNode):
 @dataclass
 class CheckBlock(ASTNode):
     branches: List[Branch]
+    var_name: Optional[str] = None
 
 @dataclass
 class ForkBlock(ASTNode):
