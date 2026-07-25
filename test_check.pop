@@ -1,11 +1,5 @@
-[
-    {"name": "alice", "age": 14},
-    {"name": "bob", "age": 18}
-] >> Map(user):
-    user >> Update:
-        ::is_adult >> check:
-            is user::age >= 15: true.
-            else: Drop.
-        ..
-    ..
-.. >> Display.
+85 >> check(score):
+    is >= 90: $"S: {score}" >> Display.
+    is >= 70: $"A: {score}" >> Display.
+    else:     $"C: {score}" >> Display.
+..
