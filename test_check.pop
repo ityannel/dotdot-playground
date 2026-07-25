@@ -1,5 +1,5 @@
 85 >> check(score):
-    is >= 90: $"S: {score}" >> Display.
-    is >= 70: $"A: {score}" >> Display.
-    else:     $"C: {score}" >> Display.
+    is >= 90: "S評価（得点: {score}）" >> Display.
+    is >= 70: "A評価（得点: {score}）" >> Display.
+    else:     "C評価（得点: {score}）" >> Display.
 ..
