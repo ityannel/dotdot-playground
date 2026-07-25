@@ -99,6 +99,13 @@ class Parser:
         # Otherwise, it's a pipeline
         pipeline = self.parse_pipeline()
         if not self._expect_dot_or_block_end(pipeline):
+            curr = self.current()
+            first_node = pipeline.nodes[0] if pipeline.nodes else None
+            var_target = first_node.target if isinstance(first_node, BindNode) and isinstance(first_node.target, VariableNode) else (first_node if isinstance(first_node, VariableNode) else None)
+            if var_target and var_target.name in ('Map', 'Filter', 'Reduce', 'Fork', 'Zip', 'Sort', 'Group', 'Check', 'check', 'Loop', 'loop', 'Catch', 'catch') and curr and curr.type == 'COLON':
+                raise ParseError(f"Missing pipeline operator '>>' before '{var_target.name}' at line {var_target.line}")
+            if curr and curr.value in ('Map', 'Filter', 'Reduce', 'Fork', 'Zip', 'Sort', 'Group', 'Check', 'check', 'Loop', 'loop', 'Catch', 'catch'):
+                raise ParseError(f"Missing pipeline operator '>>' before '{curr.value}' at line {curr.line}")
             self.expect('DOT')
         return pipeline
 
@@ -110,6 +117,13 @@ class Parser:
         while self.current() and self.current().type not in end_tokens:
             pipeline = self.parse_pipeline()
             if not self._expect_dot_or_block_end(pipeline):
+                c = self.current()
+                first_node = pipeline.nodes[0] if pipeline.nodes else None
+                var_target = first_node.target if isinstance(first_node, BindNode) and isinstance(first_node.target, VariableNode) else (first_node if isinstance(first_node, VariableNode) else None)
+                if var_target and var_target.name in ('Map', 'Filter', 'Reduce', 'Fork', 'Zip', 'Sort', 'Group', 'Check', 'check', 'Loop', 'loop', 'Catch', 'catch') and c and c.type == 'COLON':
+                    raise ParseError(f"Missing pipeline operator '>>' before '{var_target.name}' at line {var_target.line}")
+                if c and c.value in ('Map', 'Filter', 'Reduce', 'Fork', 'Zip', 'Sort', 'Group', 'Check', 'check', 'Loop', 'loop', 'Catch', 'catch'):
+                    raise ParseError(f"Missing pipeline operator '>>' before '{c.value}' at line {c.line}")
                 self.expect('DOT')
             pipelines.append(pipeline)
         return BlockNode(line, col, pipelines)
@@ -209,7 +223,11 @@ class Parser:
         # Check for type binding without 'as' (e.g. `int count`)
         if curr.type in ('INT', 'STR', 'BOOL', 'LIST', 'DICT'):
             type_name = curr.value.lower()
+            if self.current() and (self.pos + 1 >= len(self.tokens) or self.peek().type in ('DOT', 'STREAM_OP', 'END', 'COLON')):
+                raise ParseError(f"'{type_name}' is a reserved type keyword and cannot be used as a variable name at line {curr.line}")
             self.advance()
+            if not self.current() or self.current().type not in ('VARIABLE', 'IDENTIFIER'):
+                raise ParseError(f"'{type_name}' is a reserved type keyword and cannot be used as a variable name at line {curr.line}")
             var_token = self.expect('VARIABLE')
             return BindNode(line, col, VariableNode(var_token.line, var_token.column, var_token.value), type_name)
 
