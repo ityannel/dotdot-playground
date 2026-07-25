@@ -549,7 +549,10 @@ class Evaluator:
 
         for branch in node.branches:
             if branch.condition is None: # else branch
-                return await self.eval(branch.block, check_env)
+                try:
+                    return await self.eval(branch.block, check_env)
+                except ReturnException as e:
+                    return e.value
             
             # Evaluate the condition expression
             cond_result = await self.eval(branch.condition, check_env)
@@ -570,7 +573,10 @@ class Evaluator:
                 
             if is_match:
                 check_env.set_current(val)
-                return await self.eval(branch.block, check_env)
+                try:
+                    return await self.eval(branch.block, check_env)
+                except ReturnException as e:
+                    return e.value
         return val
 
     async def eval_LoopBlock(self, node: LoopBlock, env: Environment):
