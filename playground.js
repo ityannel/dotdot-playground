@@ -16,7 +16,7 @@ doubled >> Display.`;
 
   const elements = Object.fromEntries(
     [
-      "versionBadge", "runtimeDot", "runtimeStatus", "runButton", "stopButton",
+      "runtimeStatus", "runButton", "stopButton",
       "formatButton", "copyCodeButton", "downloadButton", "fileInput",
       "shareButton", "decreaseFontButton", "increaseFontButton", "themeButton",
       "examplesTab", "referenceTab", "lessonTab", "lessonTabProgress",
@@ -29,7 +29,7 @@ doubled >> Display.`;
       "advanceLessonButton",
       "editor", "editorFallback", "saveStatus", "cursorStatus",
       "characterStatus", "outputPanel", "diagnosticsPanel", "astPanel",
-      "diagnosticCount", "copyResultButton", "terminalInputForm",
+      "diagnosticCount", "copyResultButton", "resultBody", "terminalInputForm",
       "terminalPrompt", "terminalInput", "runState", "runTime", "toast",
     ].map((id) => [id, document.getElementById(id)]),
   );
@@ -102,6 +102,14 @@ doubled >> Display.`;
           start: [
             { token: "comment", regex: "\\/\\/.*$" },
             { token: "string", regex: '"(?:\\\\.|[^"\\\\])*"|\\\'(?:\\\\.|[^\\\'\\\\])*\\\'' },
+            {
+              token: ["keyword.operator", "text", "variable.assignment.final"],
+              regex: "(>>)(\\s*)(\\(\\s*[a-z_][a-zA-Z0-9_]*\\s*(?:,\\s*[a-z_][a-zA-Z0-9_]*\\s*)+\\))(?=\\s*\\.\\s*(?://.*)?$)",
+            },
+            {
+              token: ["keyword.operator", "text", "variable.assignment.final"],
+              regex: "(>>)(\\s*)([a-z_][a-zA-Z0-9_]*)(?=\\s*(?:\\[[^\\]\\r\\n]*\\]\\s*)*\\.\\s*(?://.*)?$)",
+            },
             { token: "constant.language", regex: "\\b(?:true|false|null)\\b" },
             { token: "keyword.control", regex: "\\b(?:new|is|else|and|or|not)\\b" },
             { token: "support.function", regex: "\\b[A-Z][A-Za-z0-9_]*\\b" },
@@ -219,8 +227,8 @@ doubled >> Display.`;
   }
 
   function setRuntimeStatus(kind, text) {
-    elements.runtimeDot.className = `status-dot ${kind === "ready" ? "" : kind}`.trim();
-    elements.runtimeStatus.textContent = text;
+    elements.runtimeStatus.dataset.runtimeState = kind;
+    elements.runtimeStatus.title = text;
   }
 
   function createWorker() {
@@ -242,7 +250,6 @@ doubled >> Display.`;
     if (message.type === "ready") {
       runtimeReady = true;
       elements.runButton.disabled = false;
-      elements.versionBadge.textContent = message.displayVersion;
       setRuntimeStatus("ready", "現行 Python 実装に接続済み");
       runtimeNames = [...new Set([
         ...(message.builtins ?? []),
@@ -278,6 +285,8 @@ doubled >> Display.`;
       currentInputId = message.id;
       elements.terminalPrompt.textContent = message.prompt || "入力";
       elements.terminalInputForm.hidden = false;
+      elements.resultBody.classList.add("input-active");
+      selectResultTab("output");
       elements.terminalInput.focus();
       return;
     }
@@ -292,11 +301,10 @@ doubled >> Display.`;
       renderAst(currentAst);
       showDiagnostics(message.ok ? [] : [message.error]);
       if (message.ok) {
-        appendResult(message.result);
         elements.runState.textContent = "完了";
         if (message.lesson) handleLessonResult(message.lesson);
       } else {
-        appendOutput(message.error, true);
+        appendOutput(localizeError(message.error), true);
         elements.runState.textContent = "エラー";
         selectResultTab("diagnostics");
         if (activeLessonId && currentSidePanel === "lesson") {
@@ -355,6 +363,7 @@ doubled >> Display.`;
     worker.terminate();
     worker = null;
     elements.terminalInputForm.hidden = true;
+    elements.resultBody.classList.remove("input-active");
     currentInputId = null;
     appendOutput("実行を停止しました。", true);
     elements.runState.textContent = "停止";
@@ -401,11 +410,6 @@ doubled >> Display.`;
     return typeof value === "string" ? JSON.stringify(value) : String(value);
   }
 
-  function appendResult(result) {
-    const prefix = elements.outputPanel.textContent ? "\n\n" : "";
-    elements.outputPanel.textContent += `${prefix}=> ${valueText(result)}`;
-  }
-
   function appendOutput(text, isError = false) {
     const separator = elements.outputPanel.textContent &&
       !elements.outputPanel.textContent.endsWith("\n") ? "\n" : "";
@@ -416,22 +420,28 @@ doubled >> Display.`;
 
   function showDiagnostics(diagnostics) {
     const items = (diagnostics ?? []).filter(Boolean);
+    const localizedItems = items.map(localizeError);
     elements.diagnosticCount.textContent = String(items.length);
     elements.diagnosticsPanel.textContent = items.length
-      ? items.map((item, index) => `${index + 1}. ${item}`).join("\n\n")
+      ? localizedItems.map((item, index) => `${index + 1}. ${item}`).join("\n\n")
       : "構文上の問題はありません。";
     elements.diagnosticsPanel.classList.toggle("error", items.length > 0);
     if (editor) {
-      editor.session.setAnnotations(items.map((item) => {
-        const match = String(item).match(/line\s+(\d+)/i);
+      editor.session.setAnnotations(items.map((item, index) => {
+        const line = window.PopPopLocalization?.errorLine(item);
         return {
-          row: Math.max(0, Number(match?.[1] ?? 1) - 1),
+          row: Math.max(0, Number(line ?? 1) - 1),
           column: 0,
-          text: String(item),
+          text: localizedItems[index],
           type: "error",
         };
       }));
     }
+  }
+
+  function localizeError(error) {
+    return window.PopPopLocalization?.localizeError(error)
+      ?? String(error ?? "不明なエラーが発生しました。");
   }
 
   function renderAst(ast) {
@@ -655,7 +665,7 @@ doubled >> Display.`;
     if (sender === "robot") {
       const avatar = document.createElement("span");
       avatar.className = "chat-mini-robot";
-      avatar.textContent = "P";
+      avatar.setAttribute("aria-hidden", "true");
       message.appendChild(avatar);
     }
     const bubble = document.createElement("div");
@@ -755,14 +765,15 @@ doubled >> Display.`;
 
   function explainLessonError(error) {
     const text = String(error ?? "");
+    const localized = localizeError(error);
     if (text.includes("SyntaxError")) {
       setRobotMood("encourage", 1800);
-      return `文法を読み取れなかったよ。\n${text}\n\`. \` や \`..\`、括弧の閉じ忘れを確認してみよう。`;
+      return `文法を読み取れなかったよ。\n${localized}\n\`. \` や \`..\`、括弧の閉じ忘れを確認してみよう。`;
     }
     if (text.includes("Undefined") || text.includes("not defined")) {
-      return `まだ名前が作られていないようです。\n${text}\n名前を付けるパイプが先に実行されているか見てみよう。`;
+      return `まだ名前が作られていないようです。\n${localized}\n名前を付けるパイプが先に実行されているか見てみよう。`;
     }
-    return `実行中に問題を見つけました。\n${text}\n慌てなくて大丈夫。ヒントも使えます。`;
+    return `実行中に問題を見つけました。\n${localized}\n慌てなくて大丈夫。ヒントも使えます。`;
   }
 
   function answerLessonQuestion(question) {
@@ -808,19 +819,14 @@ doubled >> Display.`;
   }
 
   function formatSource() {
-    let level = 0;
-    const formatted = getSource().split(/\r?\n/).map((raw) => {
-      const text = raw.trim();
-      if (!text) return "";
-      if (text.startsWith("..") || /^(is|else)\b/.test(text)) {
-        level = Math.max(0, level - 1);
-      }
-      const line = `${"    ".repeat(level)}${text}`;
-      if (text.endsWith(":")) level += 1;
-      return line;
-    }).join("\n").replace(/\n{3,}/g, "\n\n");
+    const formatter = window.PopPopFormatter;
+    if (!formatter) {
+      showToast("整形機能を読み込めませんでした");
+      return;
+    }
+    const formatted = formatter.formatDocument(getSource(), 4);
     setSource(formatted);
-    showToast("空白とインデントを整えました");
+    showToast("VS Codeと同じ規則でコードを整えました ✦");
   }
 
   async function copyText(text, message) {
@@ -898,6 +904,12 @@ doubled >> Display.`;
     elements.decreaseFontButton.addEventListener("click", () => changeFont(-1));
     elements.increaseFontButton.addEventListener("click", () => changeFont(1));
     elements.themeButton.addEventListener("click", toggleTheme);
+    document.addEventListener("keydown", (event) => {
+      if (event.shiftKey && event.altKey && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        formatSource();
+      }
+    });
     elements.examplesTab.addEventListener("click", () => switchSidePanel("examples"));
     elements.referenceTab.addEventListener("click", () => switchSidePanel("reference"));
     elements.lessonTab.addEventListener("click", () => switchSidePanel("lesson"));
@@ -941,6 +953,7 @@ doubled >> Display.`;
       currentInputId = null;
       elements.terminalInput.value = "";
       elements.terminalInputForm.hidden = true;
+      elements.resultBody.classList.remove("input-active");
     });
     document.addEventListener("keydown", (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {

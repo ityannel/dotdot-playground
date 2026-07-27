@@ -29,9 +29,9 @@ dev = [
 poppop = "poppop_lang.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/ityannel/dotdot-playground"
-Repository = "https://github.com/ityannel/dotdot-playground"
-Issues = "https://github.com/ityannel/dotdot-playground/issues"
+Homepage = "https://github.com/ityannel/poppop"
+Repository = "https://github.com/ityannel/poppop"
+Issues = "https://github.com/ityannel/poppop/issues"
 
 [tool.setuptools.packages.find]
 include = ["poppop_lang*"]
