@@ -6,6 +6,9 @@
   <meta name="description" content="PopPop をブラウザで試せる公式 Playground">
   <title>PopPop Playground</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=LINE+Seed+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="playground.css">
 </head>
 <body>
@@ -13,18 +16,12 @@
 
   <header class="app-header">
     <div class="brand">
-      <span class="brand-mark" aria-hidden="true">P</span>
-      <div>
-        <div class="brand-line">
-          <h1>PopPop</h1>
-          <span id="versionBadge" class="version-badge">読み込み中…</span>
-        </div>
-        <p>Playground <span class="popcorn" aria-hidden="true">◌ ◦ ●</span></p>
-      </div>
+      <img class="brand-logo" src="poppop-logo.png" alt="PopPop">
+      <img class="popcorn-logo" src="popcorn-logo.png" alt="PopCorn">
+      <h1 class="sr-only">PopPop Playground</h1>
     </div>
     <div class="header-status">
-      <span id="runtimeDot" class="status-dot loading" aria-hidden="true"></span>
-      <span id="runtimeStatus">実行環境を準備しています</span>
+      <span id="runtimeStatus">v0.0.0.1 Playground</span>
     </div>
   </header>
 
@@ -37,14 +34,16 @@
       <span aria-hidden="true">■</span> 停止
     </button>
     <span class="toolbar-separator" aria-hidden="true"></span>
-    <button id="formatButton" class="button" type="button" title="行末空白とインデントを整える">整形</button>
-    <button id="copyCodeButton" class="button" type="button">コードをコピー</button>
-    <button id="downloadButton" class="button" type="button">保存</button>
+    <button id="formatButton" class="button format-button" type="button" title="VS Codeと同じ規則で整形（Shift+Alt+F）">
+      <span aria-hidden="true">✦</span> コード整形
+    </button>
+    <button id="copyCodeButton" class="button" type="button"><span aria-hidden="true">⧉</span> コピー</button>
+    <button id="downloadButton" class="button" type="button"><span aria-hidden="true">↓</span> 保存</button>
     <label class="button file-button">
-      読み込む
+      <span aria-hidden="true">↑</span> 読み込む
       <input id="fileInput" type="file" accept=".pop,.poppop,text/plain">
     </label>
-    <button id="shareButton" class="button" type="button">共有 URL</button>
+    <button id="shareButton" class="button" type="button"><span aria-hidden="true">↗</span> 共有</button>
     <span class="toolbar-spacer"></span>
     <button id="decreaseFontButton" class="icon-button" type="button" aria-label="文字を小さく">A−</button>
     <button id="increaseFontButton" class="icon-button" type="button" aria-label="文字を大きく">A＋</button>
@@ -160,16 +159,16 @@
         <button class="result-tab" data-result-tab="ast" role="tab" aria-selected="false">AST</button>
         <button id="copyResultButton" class="copy-result" type="button">コピー</button>
       </div>
-      <div class="result-body">
+      <div id="resultBody" class="result-body">
         <pre id="outputPanel" class="result-panel" tabindex="0"><span class="muted">実行結果はここに表示されます。</span></pre>
         <pre id="diagnosticsPanel" class="result-panel" tabindex="0" hidden>構文上の問題はありません。</pre>
         <pre id="astPanel" class="result-panel" tabindex="0" hidden>実行後に構文木を表示します。</pre>
+        <form id="terminalInputForm" class="terminal-input" hidden>
+          <label id="terminalPrompt" for="terminalInput">入力</label>
+          <input id="terminalInput" autocomplete="off" spellcheck="false">
+          <button type="submit" aria-label="入力を送信" title="Enterで送信">↵</button>
+        </form>
       </div>
-      <form id="terminalInputForm" class="terminal-input" hidden>
-        <label id="terminalPrompt" for="terminalInput">入力</label>
-        <input id="terminalInput" autocomplete="off">
-        <button class="button primary" type="submit">送信</button>
-      </form>
       <footer class="run-meta">
         <span id="runState">待機中</span>
         <span id="runTime">— ms</span>
@@ -182,6 +181,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.36.5/src-min-noconflict/ace.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.36.5/src-min-noconflict/ext-language_tools.js"></script>
+  <script src="poppop-formatter.js"></script>
+  <script src="poppop-localization.js"></script>
   <script src="playground.js"></script>
 </body>
 </html>

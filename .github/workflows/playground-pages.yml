@@ -8,6 +8,12 @@ on:
       - "playground.css"
       - "playground.js"
       - "playground-worker.js"
+      - "poppop-formatter.js"
+      - "playground-formatter.test.js"
+      - "playground-localization.test.js"
+      - "poppop-localization.js"
+      - "poppop-logo.png"
+      - "popcorn-logo.png"
       - "poppop_specification.md"
       - "poppop_lang/**"
       - "tools/build_playground_runtime.py"
@@ -32,8 +38,9 @@ jobs:
       - name: Assemble the current Playground
         run: |
           mkdir _site
-          cp index.html playground.css playground.js playground-worker.js _site/
+          cp index.html playground.css playground.js playground-worker.js poppop-formatter.js poppop-localization.js poppop-logo.png popcorn-logo.png _site/
           cp poppop_specification.md _site/
+          touch _site/.nojekyll
           python tools/build_playground_runtime.py _site/poppop-runtime.zip
       - uses: actions/upload-pages-artifact@v3
         with:

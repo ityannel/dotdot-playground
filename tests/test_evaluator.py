@@ -309,6 +309,18 @@ def test_initial_implicit_value_is_null():
     assert run_code("@.") is None
 
 
+def test_display_uses_poppop_value_spellings(capsys):
+    assert run_code("@ >> Display.") is None
+    assert capsys.readouterr().out == "null\n"
+
+    assert run_code('[null, true, {"name": "PopPop"}] >> Display.') == [
+        None,
+        True,
+        {"name": "PopPop"},
+    ]
+    assert capsys.readouterr().out == '[null, true, {"name": "PopPop"}]\n'
+
+
 def test_boolean_operators_are_strict_and_short_circuit():
     assert run_code("false and missing.") is False
     assert run_code("true or missing.") is True

@@ -33,6 +33,18 @@ def _same_value(left, right):
         )
     return left == right
 
+def _display_value(value):
+    """Format a runtime value using PopPop spellings, not Python repr."""
+    if isinstance(value, str):
+        return value
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (list, dict)):
+        return json.dumps(value, ensure_ascii=False)
+    return str(value)
+
 BUILTIN_REGISTRY = {}
 
 def builtin_Type(current, env, evaluator):
@@ -599,7 +611,7 @@ BUILTIN_REGISTRY['WriteFile'] = builtin_WriteFile
 
 def builtin_Display(current, env, evaluator):
     try:
-        print(current)
+        print(_display_value(current))
         return current
     except Exception as e:
         from .evaluator import PopPopError, ReturnException, BreakException
