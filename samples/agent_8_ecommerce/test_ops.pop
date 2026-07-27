@@ -1,3 +1,0 @@
-// test_ops.pop
-[1, 2, 3] >~> Str >> map_res.
-[1, 2, 3] >-> Bool >> filter_res.

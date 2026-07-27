@@ -3,9 +3,7 @@
 // These keywords may be legal words in the grammar, but they are never
 // variable binding targets.
 const RESERVED_WORDS = new Set([
-    "and", "as", "break", "catch", "check", "connect", "else", "error",
-    "false", "flat", "fork", "from", "is", "join", "loop", "new", "null",
-    "or", "pack", "return", "route", "silo", "tap", "true"
+    "and", "else", "false", "is", "new", "not", "null", "or", "true"
 ]);
 
 const IDENTIFIER = "[a-z_][a-zA-Z0-9_]*";
@@ -19,29 +17,11 @@ function maskNonCode(line, state) {
     const characters = line.split("");
 
     for (let index = 0; index < line.length; index += 1) {
-        if (state.inBlockComment) {
-            characters[index] = " ";
-            if (line[index] === "*" && line[index + 1] === "/") {
-                characters[index + 1] = " ";
-                state.inBlockComment = false;
-                index += 1;
-            }
-            continue;
-        }
-
         if (line[index] === "/" && line[index + 1] === "/") {
             for (let commentIndex = index; commentIndex < line.length; commentIndex += 1) {
                 characters[commentIndex] = " ";
             }
             break;
-        }
-
-        if (line[index] === "/" && line[index + 1] === "*") {
-            characters[index] = " ";
-            characters[index + 1] = " ";
-            state.inBlockComment = true;
-            index += 1;
-            continue;
         }
 
         if (line[index] === "\"" || line[index] === "'") {
@@ -101,7 +81,7 @@ function directTargetOffsets(targetText) {
 }
 
 function destructuringTargetOffsets(targetText) {
-    const destructuringTarget = new RegExp(`^\\s*\\(\\s*${IDENTIFIER}\\s*(?:&\\s*${IDENTIFIER}\\s*)+\\)\\s*$`);
+    const destructuringTarget = new RegExp(`^\\s*\\(\\s*${IDENTIFIER}\\s*(?:,\\s*${IDENTIFIER}\\s*)+\\)\\s*$`);
     if (!destructuringTarget.test(targetText)) {
         return [];
     }

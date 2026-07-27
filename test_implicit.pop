@@ -1,3 +1,0 @@
-{"name": "Alice"} >> "Hello, {::name}!" >> Display.
-{"name": "Bob"} >> "Hello, {@::name}!" >> Display.
-"Alice" >> "Hello, {@}!" >> Display.

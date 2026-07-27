@@ -3,8 +3,8 @@
 const { maskNonCode } = require("./assignment-targets");
 
 const VARIABLE_IDENTIFIER = /\b[a-z_][a-zA-Z0-9_]*\b/g;
-const PIPELINE_OPERATOR = />>|>\+>|>\?>|>!>|>~>/g;
-const IMPLICIT_SCOPE_HEADER = />>\s*(?:Map|Filter|Reduce|Loop|Do|Sort|Group|Zip)\b[^\r\n]*:/;
+const PIPELINE_OPERATOR = />>/g;
+const IMPLICIT_SCOPE_HEADER = />>\s*(?:Map|Filter|Reduce|Loop|Sort|Group|Fork|Update|Check)\b[^\r\n]*:/;
 
 function scanLines(text, callback) {
     const lines = text.split("\n");

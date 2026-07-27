@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "poppop-lang"
+dynamic = ["version"]
+description = "An experimental left-to-right, pipeline-oriented programming language"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "ityannel" }]
+keywords = ["language", "interpreter", "pipeline", "dataflow"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2",
+  "pytest>=8.0",
+]
+
+[project.scripts]
+poppop = "poppop_lang.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/ityannel/dotdot-playground"
+Repository = "https://github.com/ityannel/dotdot-playground"
+Issues = "https://github.com/ityannel/dotdot-playground/issues"
+
+[tool.setuptools.packages.find]
+include = ["poppop_lang*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "poppop_lang.version.VERSION" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

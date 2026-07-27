@@ -22,8 +22,8 @@ const {
 const source = [
     "1 >> value.",
     "value >> Display.",
-    "[1, 2] >> Map @item:",
-    "  @item >> Display.",
+    "[1, 2] >> Map(item):",
+    "  item >> Display.",
     "..",
     "unknown >> Display",
     "@ >> Display."
@@ -65,10 +65,15 @@ assert.ok(kinds.includes("undefined-variable"));
 assert.ok(kinds.includes("missing-terminator"));
 assert.ok(kinds.includes("implicit-variable-scope"));
 
+const caseCollisionDiagnostics = analyzeDocument("1 >> map.");
+assert.ok(caseCollisionDiagnostics.some(diagnostic =>
+    diagnostic.kind === "standard-name-case-collision"
+));
+
 const updateSource = [
     "users >> Map(user):",
     "    user >> Update:",
-    "        ::password >> Drop.",
+    '        "hidden" >> @::password.',
     "    ..",
     ".. >> instant."
 ].join("\n");
@@ -81,9 +86,9 @@ const updateKeysSource = [
     '[{"name": "alice", "password": "hash"}] >> users.',
     'users >> Map(user):',
     '    user >> Update:',
-    '        ::name >> Uppercase.',
-    '        ::is_admin >> false.',
-    '        ::password >> Drop.',
+    '        @::name >> Uppercase >> @::name.',
+    '        false >> @::is_admin.',
+    '        "hidden" >> @::password.',
     '    ..',
     '.. >> Display.'
 ].join("\n");
@@ -97,11 +102,11 @@ assert.strictEqual(findPropertyDefinitions(updateKeysSource, "password").length,
 assert.strictEqual(findPropertyReferences(updateKeysSource, "password").length, 2);
 assert.deepStrictEqual(
     implicitContextAtOffset(updateKeysSource, updateKeysSource.indexOf("::is_admin") + 3),
-    { stream: "Map", parameters: ["user"], value: "user" }
+    { stream: "Update", parameters: [], value: "@" }
 );
 const explicitImplicitSource = ["users >> Map(user):", "    @::name >> Display.", ".."].join("\n");
 assert.ok(isImplicitMarkerAtOffset(explicitImplicitSource, explicitImplicitSource.indexOf("@")));
-const valueImplicitSource = "::is_admin >> false >> @.";
+const valueImplicitSource = "false >> @::is_admin.";
 assert.deepStrictEqual(
     implicitValueAtOffset(valueImplicitSource, valueImplicitSource.indexOf("@")),
     { expression: "false", type: "真偽値" }
@@ -110,18 +115,17 @@ assert.deepStrictEqual(
 const pipelineProblemKinds = analyzeDocument([
     'true >> Num.',
     '1 >> .',
-    'value >> Drop.'
+    'value >> Display.'
 ].join("\n")).map(diagnostic => diagnostic.kind);
 assert.ok(pipelineProblemKinds.includes("pipeline-type-mismatch"));
 assert.ok(pipelineProblemKinds.includes("empty-pipeline-stage"));
-assert.ok(pipelineProblemKinds.includes("drop-outside-update"));
 
 const updateTypoDiagnostics = analyzeDocument([
     '[{"name": "alice", "score1": 10, "score2": 20}] >> users.',
     'users >> Map(user):',
     '    user >> Update:',
-    '        ::neme >> "ALICE".',
-    '        ::score3 >> 30.',
+    '        "ALICE" >> @::neme.',
+    '        30 >> @::score3.',
     '    ..',
     '.. >> Display.'
 ].join("\n"));
@@ -133,7 +137,7 @@ const ignoredUpdateTypoDiagnostics = analyzeDocument([
     '[{"name": "alice"}] >> users.',
     'users >> Map(user):',
     '    user >> Update:',
-    '        ::neme >> "ALICE". // poppop-ignore: likely-update-key-typo',
+    '        "ALICE" >> @::neme. // poppop-ignore: likely-update-key-typo',
     '    ..',
     '.. >> Display.'
 ].join("\n"));
@@ -147,10 +151,10 @@ assert.strictEqual(
     "文字列"
 );
 
-assert.strictEqual(formatDocument("1>>value.\n[1]>>Map @item:\n@item>>Display.\n.."), [
+assert.strictEqual(formatDocument("1>>value.\n[1]>>Map(item):\nitem>>Display.\n.."), [
     "1 >> value.",
-    "[1] >> Map @item:",
-    "    @item >> Display.",
+    "[1] >> Map(item):",
+    "    item >> Display.",
     ".."
 ].join("\n"));
 

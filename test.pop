@@ -1,6 +1,0 @@
-new Double:
-    @ * 2 >> Return.
-..
-[1, 2, 3] >> Map:
-    @ >> Double >> Return.
-.. >> Display.

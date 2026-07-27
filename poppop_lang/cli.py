@@ -1,0 +1,103 @@
+"""Command-line interface for the PopPop interpreter."""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+from pathlib import Path
+
+from .evaluator import Evaluator, EvaluatorError, PopPopError
+from .lexer import Lexer, LexerError
+from .parser import ParseError, Parser
+from .version import DISPLAY_VERSION, VERSION
+
+
+def parse_source(source: str):
+    return Parser(Lexer(source).tokenize()).parse()
+
+
+def get_ast_json(source: str) -> str:
+    try:
+        return json.dumps(parse_source(source).to_dict(), ensure_ascii=False)
+    except (LexerError, ParseError) as exc:
+        return json.dumps({"error": str(exc)}, ensure_ascii=False)
+
+
+async def evaluate(source: str, evaluator: Evaluator | None = None):
+    runtime = evaluator or Evaluator()
+    return await runtime.eval(parse_source(source), runtime.global_env)
+
+
+def format_error(exc: Exception) -> str:
+    if isinstance(exc, (LexerError, ParseError)):
+        return f"SyntaxError: {exc}"
+    if isinstance(exc, PopPopError):
+        return f"{exc.err_type}: {exc.message}"
+    if isinstance(exc, EvaluatorError):
+        return f"RuntimeError: {exc}"
+    if isinstance(exc, OSError):
+        return f"IOError: {exc}"
+    return f"SystemError: {exc}"
+
+
+async def repl() -> int:
+    print(f"PopPop REPL {DISPLAY_VERSION}")
+    print("Type :quit to exit.")
+    evaluator = Evaluator()
+    buffer: list[str] = []
+
+    while True:
+        try:
+            line = input(".. " if not buffer else "   ")
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return 0
+
+        if line.strip() in {":quit", "exit"}:
+            return 0
+
+        buffer.append(line)
+        if not (line.strip().endswith(".") or line.strip() == ".."):
+            continue
+
+        try:
+            await evaluate("\n".join(buffer), evaluator)
+        except Exception as exc:
+            print(format_error(exc))
+        finally:
+            buffer.clear()
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="poppop",
+        description="Run a PopPop source file or start the interactive REPL.",
+    )
+    parser.add_argument("file", nargs="?", type=Path, help="a .pop or .poppop file")
+    parser.add_argument("--ast", action="store_true", help="print the parsed AST as JSON")
+    parser.add_argument(
+        "--version", action="version", version=f"PopPop {DISPLAY_VERSION}"
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    if args.file is None:
+        return asyncio.run(repl())
+
+    try:
+        source = args.file.read_text(encoding="utf-8")
+        if args.ast:
+            print(get_ast_json(source))
+        else:
+            asyncio.run(evaluate(source))
+        return 0
+    except (OSError, LexerError, ParseError, PopPopError, EvaluatorError) as exc:
+        print(format_error(exc))
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

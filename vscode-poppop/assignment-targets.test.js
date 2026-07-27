@@ -7,7 +7,7 @@ const source = [
     "1 >> first.",
     "1 >> Display.",
     "\"ignore >> fake.\" >> real. // >> comment.",
-    "[1, 2] >> (left & right).",
+    "[1, 2] >> (left, right).",
     "15 >> grid[row][column].",
     "foo >> middle >> final.",
     "1 >> hidden /* comment",

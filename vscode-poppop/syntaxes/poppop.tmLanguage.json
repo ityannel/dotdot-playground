@@ -17,11 +17,6 @@
         {
           "name": "comment.line.double-slash.poppop",
           "match": "//.*$"
-        },
-        {
-          "name": "comment.block.poppop",
-          "begin": "/\\*",
-          "end": "\\*/"
         }
       ]
     },
@@ -29,7 +24,7 @@
       "patterns": [
         {
           "name": "keyword.operator.pipeline.poppop",
-          "match": ">>|>!>|>~>|>\\+>|>\\?>"
+          "match": ">>"
         },
         {
           "name": "punctuation.accessor.poppop",
@@ -41,7 +36,7 @@
         },
         {
           "name": "keyword.operator.logical.poppop",
-          "match": "&&|\\b(and|or)\\b|\\|\\|"
+          "match": "\\b(and|or)\\b"
         },
         {
           "name": "keyword.operator.arithmetic.poppop",
@@ -53,19 +48,15 @@
       "patterns": [
         {
           "name": "keyword.control.flow.poppop",
-          "match": "\\b(check|Check|is|else|fork|route|tap|error|join|flat|pack|new|return|catch|Catch|loop|break|as|from|silo|connect|must|be|not)\\b"
+          "match": "\\b(is|else|new|not)\\b"
         },
         {
           "name": "support.function.builtin.poppop",
-          "match": "\\b(Display|Input|Fetch|PostFetch|WriteFile|Serve|Fail|Set|Merge|Num|Str|Bool|List|Dict|Type|Sleep|Add|Sum|Max|Min|Average|Round|Abs|Length|Sort|Reverse|Uppercase|Lowercase|Split|Replace|Join|Get|Contains|Append|Slice|Format|Now|Random|ToJson|FromJson|Clear|RenderFrame|GetKey|ScrapeDormMenu|ScrapeMenu|Import|Int|Array|Range|Return|Break|Group|Debug|Lazy|Take|Count|Throw|Update|Drop|Map|Filter|Reduce|Zip|Loop|Do)\\b"
+          "match": "\\b(Display|Input|Fetch|PostFetch|WriteFile|Set|Merge|Num|Str|Bool|List|Dict|Type|Sleep|Add|Sum|Max|Min|Average|Round|Abs|Length|Reverse|Uppercase|Lowercase|Split|Replace|Join|Get|Contains|Append|Slice|Format|Now|Random|ToJson|FromJson|Int|Array|Range|Return|Break|Debug|Throw|Update|Map|Filter|Reduce|Zip|Loop|Fork|Sort|Group|Check)\\b"
         },
         {
           "name": "constant.language.poppop",
           "match": "\\b(true|false|null)\\b"
-        },
-        {
-          "name": "support.type.poppop",
-          "match": "\\b(int|str|bool|list|dict)\\b"
         }
       ]
     },
