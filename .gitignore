@@ -1,28 +1,19 @@
 __pycache__/
 *.py[cod]
-*$py.class
+*.egg-info/
 .pytest_cache/
 .coverage
 htmlcov/
-dist/
 build/
-*.egg-info/
-.env
-.venv
-env/
+dist/
+.venv/
 venv/
+.env
 
-__pycache__/
+node_modules/
 
-rewrite_js.txt
-test.mmd
-node_modules
-tools/node/
-
-# Windows 配布物のビルド時だけ生成されるファイル
-.poppop-build-env/
-.poppop-build-spec/
-.poppop-build-work/
-.vsce-npm-cache/
+# Local extension packaging output
 vscode-poppop/runtime/
 vscode-poppop/*.vsix
+.poppop-build-*/
+.vsce-npm-cache/

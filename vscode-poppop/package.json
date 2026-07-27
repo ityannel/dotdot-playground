@@ -1,7 +1,7 @@
 {
   "name": "vscode-poppop",
-  "displayName": "PopPop Language Support Japanese — Popcorn",
-  "description": "PopPop 言語向けの日本語ホバー、データフロー表示、診断、Windows 実行器を提供します。",
+  "displayName": "PopPop Language Support Japanese — PopCorn",
+  "description": "PopPop 言語向けの日本語ホバー、データフロー表示、診断、実行コマンドを提供します。",
   "version": "1.8.1",
   "publisher": "poppop-dev",
   "main": "./extension.js",

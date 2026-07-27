@@ -101,7 +101,7 @@ function variableInsight(text, name) {
     if (assignment && Number.isInteger(assignment.lineStart)) {
         const lineEnd = text.indexOf('\n', assignment.lineStart);
         const line = text.slice(assignment.lineStart, lineEnd === -1 ? text.length : lineEnd);
-        const operators = [...line.matchAll(/>>|>\+>|>\?>|>!>|>~>/g)];
+        const operators = [...line.matchAll(/>>/g)];
         const lastOperator = operators.at(-1);
         if (lastOperator) {
             const pipeline = findPipelineAtOffset(text, assignment.lineStart + lastOperator.index + 1);
@@ -130,14 +130,14 @@ function escapeHtml(value) {
 
 function flowNodeKind(label) {
     if (/^::/.test(label)) return 'property';
-    if (/^(Catch|Drop|check|is|else|fork|route|tap|error|join|return|break)\b/.test(label)) return 'system';
+    if (/^(is|else|new)\b/.test(label)) return 'system';
     if (/^[A-Z][a-zA-Z0-9_]*/.test(label)) return 'function';
     if (/^[\[{]/.test(label)) return 'object';
     return 'variable';
 }
 
 function stagesFromLine(line, lineNumber) {
-    const operators = [...line.matchAll(/>>|>\+>|>\?>|>!>|>~>/g)];
+    const operators = [...line.matchAll(/>>/g)];
     if (!operators.length) return [];
     const stages = [];
     const input = line.slice(0, operators[0].index).trim();
@@ -208,7 +208,7 @@ function selectedOriginFlow(editor) {
     const document = editor.document;
     const position = editor.selection.active;
     const line = document.lineAt(position.line).text;
-    const operator = />>|>\+>|>\?>|>!>|>~>/.exec(line);
+    const operator = />>/.exec(line);
     if (!operator || position.character >= operator.index) return undefined;
     const pipeline = findPipelineAtOffset(document.getText(), document.offsetAt(new vscode.Position(position.line, operator.index + 1)));
     return pipeline && { text: document.getText().slice(pipeline.start, pipeline.end), firstLine: document.positionAt(pipeline.start).line + 1 };
@@ -331,7 +331,7 @@ function runtimeCommandFor(filePath) {
     if (process.platform === 'win32' && bundledRuntimePath && fs.existsSync(bundledRuntimePath)) {
         return { command: bundledRuntimePath, args: [filePath] };
     }
-    return undefined;
+    return { command: 'poppop', args: [filePath] };
 }
 
 function runPopPopFile(filePath) {
@@ -340,11 +340,6 @@ function runPopPopFile(filePath) {
     resultsChannel.clear();
     resultsChannel.appendLine(`▶ PopPop 実行: ${path.basename(filePath)}`);
     resultsChannel.show(true);
-    if (!runtime) {
-        resultsChannel.appendLine('✗ 実行器が見つかりません。Windows 版では VSIX を再インストールしてください。');
-        postFlow(filePath, { type: 'finish', ok: false });
-        return;
-    }
     const tracePath = path.join(os.tmpdir(), `poppop-flow-${Date.now()}-${Math.random().toString(16).slice(2)}.jsonl`);
     let consumedTraceLines = 0;
     postFlow(filePath, { type: 'start' });
@@ -369,6 +364,7 @@ function runPopPopFile(filePath) {
     child.stderr.on('data', data => resultsChannel.append(data.toString()));
     child.on('error', error => {
         resultsChannel.appendLine(`\n✗ 実行を開始できませんでした: ${error.message}`);
+        resultsChannel.appendLine('PopPop をインストールするか、poppop.runtimePath を設定してください。');
         postFlow(filePath, { type: 'finish', ok: false });
     });
     child.on('close', code => {

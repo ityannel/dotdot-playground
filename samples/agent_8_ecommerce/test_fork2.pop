@@ -1,5 +1,0 @@
-// test_fork2.pop
-100 >> fork:
-    route "Branch 1: " >+> (@ >> Str) >> Display.
-    route "Branch 2: " >+> (@ >> Str) >> Display.
-..

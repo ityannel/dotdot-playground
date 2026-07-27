@@ -1,5 +1,0 @@
-// test_reduce.pop
-[10, 20, 30] >> Reduce @a @b:
-    (@a + @b) >> Return.
-.. >> sum2.
-sum2 >> Display.

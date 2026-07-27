@@ -1,3 +1,0 @@
-[1, 2, 3] >> arr.
-arr >> Length >> l.
-"len: " >+> (l >> Str) >> Display.

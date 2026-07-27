@@ -1,2 +1,0 @@
-["A", "B"] >> ToJson >> json_str.
-("Result: %s" & json_str) >> Format >> Display.

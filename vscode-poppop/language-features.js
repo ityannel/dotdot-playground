@@ -4,12 +4,10 @@ const { findFinalAssignmentTargetOffsets, maskNonCode } = require("./assignment-
 const { findImplicitVariableScopeRanges, findVariableReferenceOffsets, variableAtOffset } = require("./semantic-highlights");
 
 const IDENTIFIER = /\b[a-z_][a-zA-Z0-9_]*\b/g;
-const PIPELINE_OPERATOR = />>|>\+>|>\?>|>!>|>~>/g;
-const STREAM_BLOCK = />>\s*(Map|Filter|Reduce|Loop|Do|Sort|Group|Zip)\b/i;
+const PIPELINE_OPERATOR = />>/g;
+const STREAM_BLOCK = />>\s*(Map|Filter|Reduce|Loop|Sort|Group|Fork|Update|Check)\b/;
 const RESERVED_WORDS = new Set([
-    "and", "as", "break", "catch", "check", "connect", "else", "error",
-    "false", "flat", "fork", "from", "is", "join", "loop", "new", "null",
-    "must", "be", "not", "or", "pack", "return", "route", "silo", "tap", "true"
+    "and", "else", "false", "is", "new", "null", "not", "or", "true"
 ]);
 
 // PopPop 本体に実装されている標準関数と、エディター上での説明です。
@@ -19,10 +17,7 @@ const STANDARD_FUNCTIONS = Object.freeze({
     Input: { description: "入力を受け取り、文字列として次の処理へ渡します。", output: "文字列" },
     Fetch: { description: "URL からデータを取得します。", output: "式" },
     PostFetch: { description: "POST リクエストを送り、応答を受け取ります。", output: "式" },
-    Fail: { description: "指定した内容で処理を失敗させます。", output: "エラー" },
     WriteFile: { description: "指定した内容をファイルへ書き込みます。", output: "same" },
-    Serve: { description: "HTTP サーバーを開始します。", output: "数値" },
-    Import: { description: "別の PopPop ファイルを読み込みます。", output: "same" },
     Type: { description: "値の型名を文字列で返します。", output: "文字列" },
     Sleep: { description: "指定秒数だけ待機し、値はそのまま渡します。", output: "same" },
     Add: { description: "2 つの値を加算します。", output: "数値" },
@@ -58,54 +53,30 @@ const STANDARD_FUNCTIONS = Object.freeze({
     Random: { description: "乱数を生成します。", output: "数値" },
     ToJson: { description: "値を JSON 文字列に変換します。", output: "文字列" },
     FromJson: { description: "JSON 文字列を PopPop の値へ変換します。", output: "式" },
-    Clear: { description: "画面をクリアします。", output: "same" },
-    RenderFrame: { description: "描画フレームを表示します。", output: "same" },
-    GetKey: { description: "入力されたキーを取得します。", output: "文字列" },
-    ScrapeDormMenu: { description: "寮メニューを取得します。", output: "式" },
-    ScrapeMenu: { description: "メニューを取得します。", output: "式" },
     Range: { description: "連続した数値の配列を作成します。", output: "配列" },
     Return: { description: "現在の関数から値を返します。", output: "式" },
     Break: { description: "現在の繰り返し処理を終了します。", output: "式" },
-    Group: { description: "配列を値またはキーでグループ化します。", output: "辞書" },
+    Group: { description: "ブロックが返す文字列をキーとして配列をグループ化します。", output: "辞書" },
     Debug: { description: "値をデバッグ表示し、そのまま渡します。", output: "same" },
-    Lazy: { description: "配列を遅延評価用の値にします。", output: "反復値" },
-    Take: { description: "先頭から指定件数の要素を取り出します。", output: "配列" },
-    Count: { description: "連続する数値を生成します。", output: "反復値" },
     Throw: { description: "指定した内容でエラーを発生させます。", output: "エラー" },
-    Drop: { description: "Update 内で対象キーを削除します。", output: "削除" },
     Map: { description: "配列の各要素を変換します。", output: "配列" },
     Filter: { description: "条件に合う配列要素だけを残します。", output: "配列" },
     Reduce: { description: "配列を 1 つの値へ集約します。", output: "要素" },
     Zip: { description: "複数の配列を位置ごとにまとめます。", output: "配列" },
-    Loop: { description: "値または配列に対して繰り返し処理を行います。", output: "式" },
-    Do: { description: "値または配列に対して繰り返し処理を行います。", output: "式" },
+    Loop: { description: "状態値を Break まで繰り返し更新します。", output: "式" },
     Update: { description: "辞書のキーを更新し、存在しないキーは新規追加します。", output: "辞書" }
 });
 
 const SYSTEM_KEYWORDS = Object.freeze({
-    check: "入力値に応じた分岐を開始します。",
-    Check: "入力値に応じた分岐を開始します。",
-    is: "check の条件分岐を追加します。",
+    is: "Check の候補照合または Boolean 述語を開始します。",
     else: "それまでの条件に一致しない場合の処理です。",
-    catch: "直前の処理で起きたエラーを受け取って処理します。",
-    Catch: "直前の処理で起きたエラーを受け取って処理します。",
-    fork: "同じ入力から複数の処理を分岐させます。",
-    route: "値に応じて処理を振り分けます。",
-    tap: "値を保ったまま補助的な処理を行います。",
-    error: "エラー情報を表します。",
-    join: "分岐した結果をまとめます。",
-    flat: "入れ子の結果を平坦化して結合します。",
-    pack: "結果をまとめて保持します。",
     new: "ユーザー定義関数を宣言します。",
-    return: "関数から値を返します。",
-    loop: "繰り返し処理を開始します。",
-    break: "繰り返し処理を終了します。",
-    as: "値の別名または型指定に使います。",
-    from: "値の取得元を指定します。",
-    silo: "独立した処理のまとまりを作ります。",
-    connect: "外部の接続先を指定します。",
-    must: "値に必要な型・条件を指定します。",
-    be: "must と組み合わせて型・条件を指定します。"
+    true: "Boolean の真を表します。",
+    false: "Boolean の偽を表します。",
+    null: "Null 値を表します。",
+    and: "Boolean の短絡論理積です。",
+    or: "Boolean の短絡論理和です。",
+    not: "Boolean を否定します。"
 });
 
 function scanLines(text, callback) {
@@ -205,7 +176,7 @@ function isVariableName(name) {
 function findStreamParameterDefinitions(text, name) {
     const definitions = [];
     scanLines(text, ({ code, lineNumber, lineStart }) => {
-        const streamPattern = />>\s*(?:Map|Filter|Reduce|Loop|Do|Sort|Group|Zip)\s*\(([^)]*)\)/gi;
+        const streamPattern = />>\s*(?:Map|Filter|Reduce|Loop|Sort|Group|Fork|Update|Check)\s*\(([^)]*)\)/g;
         for (const stream of code.matchAll(streamPattern)) {
             const parameterText = stream[1];
             const parameterStart = stream.index + stream[0].indexOf(parameterText);
@@ -285,7 +256,7 @@ function findBlockRanges(text) {
 function inferValueType(expression) {
     const value = expression.trim();
     if (/^[-+]?\d+(?:\.\d+)?$/.test(value)) return "数値";
-    if (/^(?:\$?\")/.test(value) || /^'/.test(value)) return "文字列";
+    if (/^"/.test(value) || /^'/.test(value)) return "文字列";
     if (/^\[/.test(value)) return "配列";
     if (/^\{/.test(value)) return "辞書";
     if (/^(true|false)$/.test(value)) return "真偽値";
@@ -423,16 +394,6 @@ function namedImplicitVariables(text) {
     return names;
 }
 
-function typedFunctionParameters(text) {
-    const names = new Set();
-    scanLines(text, ({ code }) => {
-        for (const match of code.matchAll(/\b(?:int|str|bool|list|dict)\s+([a-z_][a-zA-Z0-9_]*)/g)) {
-            names.add(match[1]);
-        }
-    });
-    return names;
-}
-
 function functionParameters(text) {
     const names = new Set();
     scanLines(text, ({ code }) => {
@@ -441,7 +402,7 @@ function functionParameters(text) {
         const parameterPart = code.slice(0, functionOperator);
         IDENTIFIER.lastIndex = 0;
         for (const match of parameterPart.matchAll(IDENTIFIER)) {
-            if (isVariableName(match[0]) && !["int", "str", "bool", "list", "dict"].includes(match[0])) {
+            if (isVariableName(match[0])) {
                 names.add(match[0]);
             }
         }
@@ -452,7 +413,7 @@ function functionParameters(text) {
 function streamParameters(text) {
     const names = new Set();
     scanLines(text, ({ code }) => {
-        for (const stream of code.matchAll(/>>\s*(?:Map|Filter|Reduce|Loop|Do|Sort|Group|Zip)\s*\(([^)]*)\)/gi)) {
+        for (const stream of code.matchAll(/>>\s*(?:Map|Filter|Reduce|Loop|Sort|Group|Fork|Update|Check)\s*\(([^)]*)\)/g)) {
             for (const match of stream[1].matchAll(/[a-z_][a-zA-Z0-9_]*/g)) {
                 names.add(match[0]);
             }
@@ -494,9 +455,9 @@ function findPropertyAtOffset(text, offset) {
 }
 
 function streamContextFromHeader(code) {
-    const match = />>\s*(Map|Filter|Reduce|Loop|Do|Sort|Group|Zip)\b\s*(?:\(([^)]*)\)|\s+@?([a-z_][a-zA-Z0-9_]*))?\s*:/i.exec(code);
+    const match = />>\s*(Map|Filter|Reduce|Loop|Sort|Group|Fork|Update|Check)\b\s*(?:\(([^)]*)\))?\s*:/.exec(code);
     if (!match) return undefined;
-    const parameters = (match[2] || match[3] || "")
+    const parameters = (match[2] || "")
         .match(/[a-z_][a-zA-Z0-9_]*/g) || [];
     return {
         stream: match[1],
@@ -546,7 +507,7 @@ function implicitValueAtOffset(text, offset) {
     // @ は直前のパイプライン段階が返した値を指す。文字列やコメントを
     // マスクすると @ の位置を取り違える場合があるため、ここでは元の行を使う。
     const before = line.slice(0, markerIndex).replace(/\/\/.*$/, "");
-    const operators = [...before.matchAll(/>>|>\+>|>\?>|>!>|>~>/g)];
+    const operators = [...before.matchAll(/>>/g)];
     const currentOperator = operators.at(-1);
     if (!currentOperator) return undefined;
     const previousOperator = operators.at(-2);
@@ -610,12 +571,12 @@ function findUpdatePropertyOffsets(text) {
 
         const isInsideUpdate = stack.some(block => block.kind === "update");
         if (isInsideUpdate) {
-            for (const match of code.matchAll(/::([a-z_][a-zA-Z0-9_]*)/g)) {
+            for (const match of code.matchAll(/>>\s*@::([a-z_][a-zA-Z0-9_]*)/g)) {
                 const name = match[1];
-                const isDrop = />>\s*Drop\b/.test(code.slice(match.index + match[0].length));
-                const isNew = !isDrop && !knownKeys.has(name);
-                properties.push({ start: lineStart + match.index + 2, length: name.length, name, isNew });
-                if (!isDrop) knownKeys.add(name);
+                const nameOffset = match[0].lastIndexOf(name);
+                const isNew = !knownKeys.has(name);
+                properties.push({ start: lineStart + match.index + nameOffset, length: name.length, name, isNew });
+                knownKeys.add(name);
             }
         }
 
@@ -796,7 +757,6 @@ function analyzeDocument(text) {
     const bindings = findBindings(text);
     const defined = new Set(bindings.map(binding => binding.name));
     for (const name of namedImplicitVariables(text)) defined.add(name);
-    for (const name of typedFunctionParameters(text)) defined.add(name);
     for (const name of functionParameters(text)) defined.add(name);
     for (const name of streamParameters(text)) defined.add(name);
     const occurrences = allVariableOccurrences(text);
@@ -831,6 +791,22 @@ function analyzeDocument(text) {
                 start: binding.start,
                 length: binding.length,
                 message: `変数 '${binding.name}' は代入後に使われていません。`
+            });
+        }
+    }
+
+    const standardNamesByLowercase = new Map(
+        Object.keys(STANDARD_FUNCTIONS).map(name => [name.toLowerCase(), name])
+    );
+    for (const binding of bindings) {
+        const standardName = standardNamesByLowercase.get(binding.name.toLowerCase());
+        if (standardName && binding.name !== standardName) {
+            diagnostics.push({
+                kind: "standard-name-case-collision",
+                severity: "information",
+                start: binding.start,
+                length: binding.length,
+                message: `変数 '${binding.name}' は標準処理 '${standardName}' と大文字・小文字だけが異なります。`
             });
         }
     }
@@ -893,29 +869,6 @@ function analyzeDocument(text) {
         knownUpdateKeys.add(property.name);
     }
 
-    scanLines(text, ({ code, lineStart }) => {
-        for (const match of code.matchAll(/\b(?:Catch|catch)\s*:\s*(?:(?:\.\.)|$)/g)) {
-            diagnostics.push({
-                kind: "empty-catch",
-                severity: "warning",
-                start: lineStart + match.index,
-                length: match[0].length,
-                message: "Catch にはエラー時に実行する処理を記述してください。"
-            });
-        }
-        for (const match of code.matchAll(/\bDrop\b/g)) {
-            if (!isOffsetInsideUpdate(text, lineStart + match.index)) {
-                diagnostics.push({
-                    kind: "drop-outside-update",
-                    severity: "warning",
-                    start: lineStart + match.index,
-                    length: match[0].length,
-                    message: "Drop は Update ブロック内で使うとキーを削除できます。"
-                });
-            }
-        }
-    });
-
     return diagnostics.filter(diagnostic => !isDiagnosticIgnoredAtOffset(text, diagnostic, diagnostic.start));
 }
 
@@ -923,7 +876,7 @@ function normalizePipelineSpacing(line, code) {
     let result = "";
     let index = 0;
     while (index < line.length) {
-        const match = /^(>>|>\+>|>\?>|>!>|>~>)/.exec(code.slice(index));
+        const match = /^(>>)/.exec(code.slice(index));
         if (match) {
             result = result.replace(/[ \t]+$/, "");
             result += ` ${match[1]} `;
