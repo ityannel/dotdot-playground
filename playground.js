@@ -15,6 +15,15 @@
 .. >> doubled.
 
 doubled >> Display.`;
+  const LESSON_FEATURES = {
+    map: "Map",
+    filter: "Filter",
+    reduce: "Reduce",
+    update: "Update",
+    check: "Check",
+    function: "new",
+    loop: "Loop",
+  };
 
   const elements = Object.fromEntries(
     [
@@ -321,7 +330,11 @@ doubled >> Display.`;
       if (message.ok) {
         elements.runState.textContent = "完了";
         if (message.lesson) handleLessonResult(message.lesson);
-        else if (aiLesson && activeLessonId === aiLesson.id && currentSidePanel === "lesson") {
+        else if (
+          currentLesson()?.dynamic &&
+          activeLessonId === currentLesson()?.id &&
+          currentSidePanel === "lesson"
+        ) {
           evaluateAiLesson(message.result);
         }
       } else {
@@ -378,7 +391,10 @@ doubled >> Display.`;
     worker.postMessage({
       type: "run",
       source: getSource(),
-      lessonId: currentSidePanel === "lesson" && !aiLesson ? activeLessonId : null,
+      lessonId:
+        currentSidePanel === "lesson" && !currentLesson()?.dynamic
+          ? activeLessonId
+          : null,
     });
   }
 
@@ -778,7 +794,7 @@ doubled >> Display.`;
   }
 
   function resetLessons() {
-    if (!confirm("レッスンの進捗と最初の設定を消して、最初からやり直しますか？")) return;
+    if (!confirm("レッスン進捗と、経験レベル・作りたいものなどのAI設定をすべて消しますか？")) return;
     completedLessons.clear();
     tunedLessons.clear();
     aiLesson = null;
@@ -801,7 +817,7 @@ doubled >> Display.`;
     setRobotMood("neutral");
     if (lessons[0]) setSource(lessons[0].starter);
     renderLesson();
-    showToast("レッスンを最初の状態に戻しました");
+    showToast("進捗とAI設定をリセットしました");
   }
 
   function openCurrentLesson({ introduction = false, firstMeeting = false } = {}) {
@@ -833,18 +849,22 @@ doubled >> Display.`;
 
   async function tuneLessonForProfile(baseLesson) {
     if (!baseLesson || baseLesson.id === lessons[0]?.id) return;
+    const requiredFeature = LESSON_FEATURES[baseLesson.id];
     setRobotMood("thinking");
     setTutorBusy(true);
     try {
       const text = await callGemini(
         [
           "あなたはPopPop言語の教材編集者です。",
-          "次の既存レッスンを、学習者一人に合わせて一問だけ調整してください。",
-          "コード、正解条件、学ぶ機能は変更しません。",
-          "title, intro, goal, hintsの言葉と題材だけを調整します。",
+          "次の既存レッスンを参考に、学習者一人のための新しい問題を一問だけ作ってください。",
+          `今回必ず学ぶ機能は ${requiredFeature} です。starterとsolutionの両方で使ってください。`,
+          "元のコードと同じ確実な構文構造を使い、値・変数名・題材・正解条件は変えて構いません。",
+          "starterは実行可能だが目標をまだ満たさず、solutionは目標を満たす完成コードにします。",
+          "starterとsolutionの最後の文は、必ず `値または変数 >> Display.` にしてください。",
+          "改行には構文上の意味がありません。通常の文は `.`、ブロック全体は `..` で閉じます。",
           "introは80文字以内、goalは60文字以内、hintsは2個にしてください。",
           "JSONだけを返してください。",
-          '形式: {"title":"題名","intro":"導入","goal":"目標","hints":["ヒント1","ヒント2"],"mood":"neutral"}',
+          '形式: {"title":"題名","intro":"導入","goal":"目標","starter":"未完成コード","solution":"完成コード","hints":["ヒント1","ヒント2"],"mood":"neutral"}',
           "moodは neutral, happy, thinking, encourage, surprised のいずれかです。",
           `学習者の経験: ${tutorProfile.level}`,
           `学習者が作りたいもの: ${tutorProfile.goal || "まだ決めていない"}`,
@@ -852,25 +872,41 @@ doubled >> Display.`;
           `元の導入: ${baseLesson.intro}`,
           `元の目標: ${baseLesson.goal}`,
           `元のヒント: ${(baseLesson.hints || []).join(" / ")}`,
-          `変更してはいけない完成コード:\n${baseLesson.solution}`,
+          `安全な未完成コード例:\n${baseLesson.starter}`,
+          `安全な完成コード例:\n${baseLesson.solution}`,
         ].join("\n\n"),
         true,
       );
       const data = parseJsonText(text);
-      if (!data?.intro || !data?.goal || !Array.isArray(data?.hints)) {
-        throw new Error("調整結果を読み取れませんでした");
+      if (
+        !data?.intro || !data?.goal || !data?.starter || !data?.solution ||
+        !Array.isArray(data?.hints)
+      ) {
+        throw new Error("生成した問題を読み取れませんでした");
+      }
+      if (
+        !hasFinalDisplay(data.starter) || !hasFinalDisplay(data.solution) ||
+        !String(data.starter).includes(requiredFeature) ||
+        !String(data.solution).includes(requiredFeature) ||
+        String(data.starter).trim() === String(data.solution).trim()
+      ) {
+        throw new Error("生成した問題がレッスン条件を満たしませんでした");
       }
       const moods = ["neutral", "happy", "thinking", "encourage", "surprised"];
       const tuned = {
         ...baseLesson,
+        dynamic: true,
         title: String(data.title || baseLesson.title).slice(0, 40),
         intro: String(data.intro).slice(0, 160),
         goal: String(data.goal).slice(0, 120),
+        starter: String(data.starter).trim(),
+        solution: String(data.solution).trim(),
         hints: data.hints.slice(0, 2).map((hint) => String(hint).slice(0, 180)),
         mood: moods.includes(data.mood) ? data.mood : "neutral",
       };
       tunedLessons.set(baseLesson.id, tuned);
       if (activeLessonId === baseLesson.id && !aiLesson) {
+        setSource(tuned.starter);
         renderLesson();
         setRobotMood(tuned.mood, 2800);
         robotSpeak(tuned.intro);
@@ -1014,8 +1050,8 @@ doubled >> Display.`;
   }
 
   async function evaluateAiLesson(result) {
-    const lesson = aiLesson;
-    if (!lesson) return;
+    const lesson = currentLesson();
+    if (!lesson?.dynamic) return;
     const requestId = ++tutorRequestSequence;
     setRobotMood("thinking");
     setTutorBusy(true);
@@ -1037,6 +1073,15 @@ doubled >> Display.`;
       if (requestId !== tutorRequestSequence) return;
       const data = parseJsonText(text);
       const passed = data?.passed === true;
+      if (passed && lessons.some((baseLesson) => baseLesson.id === lesson.id)) {
+        completedLessons.add(lesson.id);
+        localStorage.setItem(
+          STORAGE.lessonProgress,
+          JSON.stringify([...completedLessons]),
+        );
+        elements.advanceLessonButton.hidden = lessonIndex >= lessons.length - 1;
+        renderLesson();
+      }
       const mood = ["happy", "encourage", "thinking", "surprised"].includes(data?.mood)
         ? data.mood
         : passed ? "happy" : "encourage";
@@ -1078,6 +1123,7 @@ doubled >> Display.`;
       }
       aiLesson = {
         id: `ai-${Date.now()}`,
+        dynamic: true,
         badge: "AI",
         title: data.title || "AI問題",
         goal: data.goal,
