@@ -60,62 +60,73 @@ class PlaygroundHandler(SimpleHTTPRequestHandler):
                 payload["generationConfig"]["thinkingConfig"] = {
                     "thinkingLevel": "low"
                 }
-                payload["generationConfig"]["responseFormat"] = {
-                    "text": {
-                        "mimeType": "application/json",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "title": {"type": "string"},
-                                "intro": {"type": "string"},
-                                "goal": {"type": "string"},
-                                "starter": {"type": "string"},
-                                "solution": {"type": "string"},
-                                "hints": {
-                                    "type": "array",
-                                    "items": {"type": "string"},
-                                    "minItems": 2,
-                                    "maxItems": 2,
-                                },
-                                "mood": {
-                                    "type": "string",
-                                    "enum": [
-                                        "neutral",
-                                        "happy",
-                                        "thinking",
-                                        "encourage",
-                                        "surprised",
-                                    ],
-                                },
-                            },
-                            "required": [
-                                "title",
-                                "intro",
-                                "goal",
-                                "starter",
-                                "solution",
-                                "hints",
-                                "mood",
+                payload["generationConfig"]["responseMimeType"] = "application/json"
+                payload["generationConfig"]["responseJsonSchema"] = {
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "string"},
+                        "intro": {"type": "string"},
+                        "goal": {"type": "string"},
+                        "starter": {"type": "string"},
+                        "solution": {"type": "string"},
+                        "hints": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "minItems": 2,
+                            "maxItems": 2,
+                        },
+                        "mood": {
+                            "type": "string",
+                            "enum": [
+                                "neutral",
+                                "happy",
+                                "thinking",
+                                "encourage",
+                                "surprised",
                             ],
-                            "additionalProperties": False,
                         },
                     },
+                    "required": [
+                        "title",
+                        "intro",
+                        "goal",
+                        "starter",
+                        "solution",
+                        "hints",
+                        "mood",
+                    ],
+                    "additionalProperties": False,
                 }
             elif json_mode:
                 payload["generationConfig"]["responseMimeType"] = "application/json"
 
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-            gemini_request = urllib.request.Request(
-                url,
-                data=json.dumps(payload).encode("utf-8"),
-                headers={
-                    "Content-Type": "application/json",
-                    "x-goog-api-key": api_key,
-                },
-                method="POST",
-            )
-            with urllib.request.urlopen(gemini_request, timeout=30) as response:
-                gemini_payload = json.loads(response.read().decode("utf-8"))
+            candidates = [model]
+            if task == "lesson" and model != CHAT_MODEL:
+                candidates.append(CHAT_MODEL)
+            for index, candidate_model in enumerate(candidates):
+                url = (
+                    "https://generativelanguage.googleapis.com/v1beta/models/"
+                    f"{candidate_model}:generateContent"
+                )
+                gemini_request = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={
+                        "Content-Type": "application/json",
+                        "x-goog-api-key": api_key,
+                    },
+                    method="POST",
+                )
+                try:
+                    with urllib.request.urlopen(
+                        gemini_request, timeout=30
+                    ) as response:
+                        gemini_payload = json.loads(response.read().decode("utf-8"))
+                    break
+                except urllib.error.HTTPError as exc:
+                    if exc.code == 429 and index < len(candidates) - 1:
+                        continue
+                    raise
 
             parts = (
                 gemini_payload.get("candidates", [{}])[0]
