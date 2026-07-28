@@ -12,19 +12,19 @@ from typing import Any
 LESSONS = (
     {
         "id": "pipeline",
-        "title": "パイプラインの一歩",
+        "title": "Hello, World!",
         "badge": "01",
-        "intro": "最初は、値を左から右へ渡して名前を付けてみよう。",
-        "goal": "answer の値が 42 になるように、最初の数値を直してください。",
-        "starter": "10 >> answer.\nanswer.",
-        "solution": "42 >> answer.\nanswer.",
+        "intro": "最初の一問です。文字列を Display へ流して、画面に表示してみよう。",
+        "goal": '"Hello, World!" と表示してください。',
+        "starter": '"Hello" >> Display.',
+        "solution": '"Hello, World!" >> Display.',
         "hints": (
-            "`>>` の左側にある値が、右側の answer に渡ります。",
-            "10 を 42 に変更してから実行してみましょう。",
+            "`>> Display.` の左側にある文字列が、そのまま出力されます。",
+            '文字列を `"Hello, World!"` に書き換えてみましょう。',
         ),
-        "expected": 42,
-        "required": (">>", "answer"),
-        "success": "すばらしい！ 値がパイプを通って answer に入りました。",
+        "expected": "Hello, World!",
+        "required": (">>", "Display", '"Hello, World!"'),
+        "success": "Hello, World! PopPopの最初のプログラムが動きました。",
     },
     {
         "id": "map",
@@ -36,20 +36,20 @@ LESSONS = (
             "[1, 2, 3] >> Map(value):\n"
             "    value + 1.\n"
             ".. >> doubled.\n\n"
-            "doubled."
+            "doubled >> Display."
         ),
         "solution": (
             "[1, 2, 3] >> Map(value):\n"
             "    value * 2.\n"
             ".. >> doubled.\n\n"
-            "doubled."
+            "doubled >> Display."
         ),
         "hints": (
             "ブロック内の value は、List から取り出された現在の要素です。",
             "`value + 1` を `value * 2` に変えてみましょう。",
         ),
         "expected": [2, 4, 6],
-        "required": ("Map", "*"),
+        "required": ("Map", "*", "Display"),
         "success": "大成功！ Map は元の List を変えず、新しい List を作ります。",
     },
     {
@@ -62,20 +62,20 @@ LESSONS = (
             "[1, 2, 3, 4] >> Filter(value):\n"
             "    value > 2.\n"
             ".. >> evens.\n\n"
-            "evens."
+            "evens >> Display."
         ),
         "solution": (
             "[1, 2, 3, 4] >> Filter(value):\n"
             "    value % 2 == 0.\n"
             ".. >> evens.\n\n"
-            "evens."
+            "evens >> Display."
         ),
         "hints": (
             "偶数は、2で割った余りが0になる数です。",
             "条件を `value % 2 == 0` にしてみましょう。",
         ),
         "expected": [2, 4],
-        "required": ("Filter", "%", "=="),
+        "required": ("Filter", "%", "==", "Display"),
         "success": "正解！ Filter のブロックは必ず Boolean を返します。",
     },
     {
@@ -88,20 +88,20 @@ LESSONS = (
             "[1, 2, 3, 4] >> Reduce(state):\n"
             "    state[0] * state[1].\n"
             ".. >> total.\n\n"
-            "total."
+            "total >> Display."
         ),
         "solution": (
             "[1, 2, 3, 4] >> Reduce(state):\n"
             "    state[0] + state[1].\n"
             ".. >> total.\n\n"
-            "total."
+            "total >> Display."
         ),
         "hints": (
             "`state[0]` が accumulator、`state[1]` が次の要素です。",
             "二つを `+` で足してください。",
         ),
         "expected": 10,
-        "required": ("Reduce", "state[0]", "state[1]", "+"),
+        "required": ("Reduce", "state[0]", "state[1]", "+", "Display"),
         "success": "合計できました！ 最初の要素が最初の accumulator になります。",
     },
     {
@@ -114,21 +114,21 @@ LESSONS = (
             '{"name": "Ada", "score": 10} >> Update(user):\n'
             "    11 >> user::score.\n"
             ".. >> updated.\n\n"
-            "updated."
+            "updated >> Display."
         ),
         "solution": (
             '{"name": "Ada", "score": 10} >> Update(user):\n'
             "    15 >> user::score.\n"
             "    true >> user::active.\n"
             ".. >> updated.\n\n"
-            "updated."
+            "updated >> Display."
         ),
         "hints": (
             "更新は `新しい値 >> user::フィールド名.` の向きです。",
             "`15 >> user::score.` と `true >> user::active.` を並べましょう。",
         ),
         "expected": {"name": "Ada", "score": 15, "active": True},
-        "required": ("Update", "::score", "::active"),
+        "required": ("Update", "::score", "::active", "Display"),
         "success": "できました！ 元の Dict は変更されず、updated が新しく作られます。",
     },
     {
@@ -144,7 +144,7 @@ LESSONS = (
             "    else:\n"
             '        "unknown".\n'
             ".. >> label.\n\n"
-            "label."
+            "label >> Display."
         ),
         "solution": (
             "2 >> Check(value):\n"
@@ -155,14 +155,14 @@ LESSONS = (
             "    else:\n"
             '        "large".\n'
             ".. >> label.\n\n"
-            "label."
+            "label >> Display."
         ),
         "hints": (
             "`is 1 or 2 or 3:` で候補のどれかに一致するか調べられます。",
             "新しい is 分岐の中から文字列 `\"small\"` を返してください。",
         ),
         "expected": "small",
-        "required": ("Check", "is 1 or 2 or 3", "else"),
+        "required": ("Check", "is 1 or 2 or 3", "else", "Display"),
         "success": "分岐成功！ 一致しなかった場合のために else は必須です。",
     },
     {
@@ -176,21 +176,21 @@ LESSONS = (
             "    left - right.\n"
             "..\n\n"
             "(10, 20) >> AddTwo >> total.\n"
-            "total."
+            "total >> Display."
         ),
         "solution": (
             "(left, right) >> new AddTwo:\n"
             "    left + right.\n"
             "..\n\n"
             "(10, 20) >> AddTwo >> total.\n"
-            "total."
+            "total >> Display."
         ),
         "hints": (
             "関数の最後の値は暗黙に関数結果になります。",
             "`left - right` の演算子を `+` に変えてください。",
         ),
         "expected": 30,
-        "required": ("new AddTwo", "left + right"),
+        "required": ("new AddTwo", "left + right", "Display"),
         "success": "関数が完成！ 最後の値を返すだけなら Return は省略できます。",
     },
     {
@@ -208,7 +208,7 @@ LESSONS = (
             "            value + 1.\n"
             "    ..\n"
             ".. >> result.\n\n"
-            "result."
+            "result >> Display."
         ),
         "solution": (
             "0 >> Loop(state):\n"
@@ -219,14 +219,14 @@ LESSONS = (
             "            value + 1.\n"
             "    ..\n"
             ".. >> result.\n\n"
-            "result."
+            "result >> Display."
         ),
         "hints": (
             "Break に渡した値が Loop 全体の結果になります。",
             "停止条件の3を5に変えてください。止まらなくなったら上の「停止」を押せます。",
         ),
         "expected": 5,
-        "required": ("Loop", "Break", "value >= 5"),
+        "required": ("Loop", "Break", "value >= 5", "Display"),
         "success": "全レッスン修了！ Loop と Break を安全に扱えました。",
     },
 )

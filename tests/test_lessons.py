@@ -23,3 +23,11 @@ def test_public_lessons_do_not_duplicate_validation_values():
     assert len(lessons) == len(LESSONS)
     assert all("expected" not in lesson for lesson in lessons)
     assert all("required" not in lesson for lesson in lessons)
+
+
+def test_every_lesson_displays_its_final_value():
+    assert LESSONS[0]["title"] == "Hello, World!"
+    for lesson in LESSONS:
+        assert lesson["starter"].rstrip().endswith(">> Display.")
+        assert lesson["solution"].rstrip().endswith(">> Display.")
+        assert "Display" in lesson["required"]

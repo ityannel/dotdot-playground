@@ -275,6 +275,23 @@ body.lesson-open .workspace {
 .tutor-header > div:last-child { display: grid; gap: 3px; }
 .tutor-header strong { font-size: 13px; }
 
+.tutor-reset {
+  margin-left: auto;
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.tutor-reset:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 .tutor-session {
   display: flex;
   min-height: 0;
@@ -506,6 +523,7 @@ body.lesson-open .workspace {
 .lesson-panel.welcome-mode .tutor-header > div:last-child { text-align: center; }
 .lesson-panel.welcome-mode .tutor-header strong { font-size: 14px; }
 .lesson-panel.welcome-mode .tutor-online { display: none; }
+.lesson-panel.welcome-mode .tutor-reset { display: none; }
 .lesson-panel.welcome-mode .robot-avatar { transform: scale(1.75); margin-bottom: 18px; }
 .lesson-panel.profile-mode .tutor-header { display: none; }
 

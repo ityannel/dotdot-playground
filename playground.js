@@ -28,7 +28,8 @@ doubled >> Display.`;
       "lessonTitleButton", "nextLessonButton", "lessonBadge", "lessonTitle",
       "lessonGoal", "lessonChat", "robotAvatar", "tutorStatus",
       "tutorWelcome", "tutorSession", "welcomeIntro", "welcomeTutorButton",
-      "tutorProfileForm", "tutorGoal", "tutorThinking", "checkLessonButton",
+      "tutorProfileForm", "tutorGoal", "tutorThinking", "resetLessonButton",
+      "checkLessonButton",
       "hintButton", "showAnswerButton", "lessonQuestionForm", "lessonQuestion",
       "aiLessonButton", "advanceLessonButton",
       "editor", "editorFallback", "saveStatus", "cursorStatus",
@@ -63,6 +64,7 @@ doubled >> Display.`;
   let completedLessons = new Set();
   let robotMoodTimer = null;
   let aiLesson = null;
+  let tunedLessons = new Map();
   let tutorWelcomed = localStorage.getItem(STORAGE.tutorWelcomed) === "yes";
   let tutorProfile = { level: "はじめて", goal: "" };
   let tutorRequestSequence = 0;
@@ -645,7 +647,8 @@ doubled >> Display.`;
   }
 
   function currentLesson() {
-    return aiLesson ?? lessons[lessonIndex] ?? null;
+    const baseLesson = lessons[lessonIndex] ?? null;
+    return aiLesson ?? (baseLesson ? tunedLessons.get(baseLesson.id) : null) ?? baseLesson;
   }
 
   function renderLessonProgress() {
@@ -768,8 +771,37 @@ doubled >> Display.`;
     localStorage.setItem(STORAGE.tutorProfile, JSON.stringify(tutorProfile));
     tutorWelcomed = true;
     localStorage.setItem(STORAGE.tutorWelcomed, "yes");
+    lessonIndex = 0;
+    localStorage.setItem(STORAGE.lessonIndex, "0");
     renderTutorShell();
     openCurrentLesson({ introduction: true, firstMeeting: true });
+  }
+
+  function resetLessons() {
+    if (!confirm("レッスンの進捗と最初の設定を消して、最初からやり直しますか？")) return;
+    completedLessons.clear();
+    tunedLessons.clear();
+    aiLesson = null;
+    activeLessonId = null;
+    hintIndex = 0;
+    lessonIndex = 0;
+    tutorProfile = { level: "はじめて", goal: "" };
+    tutorWelcomed = false;
+    tutorRequestSequence += 1;
+    localStorage.removeItem(STORAGE.lessonProgress);
+    localStorage.removeItem(STORAGE.lessonIndex);
+    localStorage.removeItem(STORAGE.tutorProfile);
+    localStorage.removeItem(STORAGE.tutorWelcomed);
+    elements.tutorProfileForm.reset();
+    elements.tutorProfileForm.hidden = true;
+    elements.welcomeIntro.hidden = false;
+    elements.lessonPanel.classList.remove("profile-mode");
+    clearLessonChat();
+    setTutorBusy(false);
+    setRobotMood("neutral");
+    if (lessons[0]) setSource(lessons[0].starter);
+    renderLesson();
+    showToast("レッスンを最初の状態に戻しました");
   }
 
   function openCurrentLesson({ introduction = false, firstMeeting = false } = {}) {
@@ -782,11 +814,74 @@ doubled >> Display.`;
     renderLesson();
     clearLessonChat();
     if (introduction) {
-      askRobot(firstMeeting ? "first_meeting" : "lesson_start", {
-        fallback: firstMeeting
-          ? `はじめまして！ ロボット君です。\n最初の目標は「${lesson.goal}」。一緒にやってみよう！`
-          : `${lesson.intro}\n目標は「${lesson.goal}」。できたら答え合わせしてね。`,
-      });
+      const baseLesson = lessons[lessonIndex];
+      const cachedTuning = baseLesson ? tunedLessons.get(baseLesson.id) : null;
+      if (!aiLesson && lessonIndex > 0 && !cachedTuning) {
+        tuneLessonForProfile(baseLesson);
+      } else if (cachedTuning) {
+        setRobotMood(cachedTuning.mood || "neutral", 2800);
+        robotSpeak(cachedTuning.intro);
+      } else {
+        askRobot(firstMeeting ? "first_meeting" : "lesson_start", {
+          fallback: firstMeeting
+            ? `はじめまして！ ロボット君です。\n最初の目標は「${lesson.goal}」。一緒にやってみよう！`
+            : `${lesson.intro}\n目標は「${lesson.goal}」。できたら答え合わせしてね。`,
+        });
+      }
+    }
+  }
+
+  async function tuneLessonForProfile(baseLesson) {
+    if (!baseLesson || baseLesson.id === lessons[0]?.id) return;
+    setRobotMood("thinking");
+    setTutorBusy(true);
+    try {
+      const text = await callGemini(
+        [
+          "あなたはPopPop言語の教材編集者です。",
+          "次の既存レッスンを、学習者一人に合わせて一問だけ調整してください。",
+          "コード、正解条件、学ぶ機能は変更しません。",
+          "title, intro, goal, hintsの言葉と題材だけを調整します。",
+          "introは80文字以内、goalは60文字以内、hintsは2個にしてください。",
+          "JSONだけを返してください。",
+          '形式: {"title":"題名","intro":"導入","goal":"目標","hints":["ヒント1","ヒント2"],"mood":"neutral"}',
+          "moodは neutral, happy, thinking, encourage, surprised のいずれかです。",
+          `学習者の経験: ${tutorProfile.level}`,
+          `学習者が作りたいもの: ${tutorProfile.goal || "まだ決めていない"}`,
+          `元の題名: ${baseLesson.title}`,
+          `元の導入: ${baseLesson.intro}`,
+          `元の目標: ${baseLesson.goal}`,
+          `元のヒント: ${(baseLesson.hints || []).join(" / ")}`,
+          `変更してはいけない完成コード:\n${baseLesson.solution}`,
+        ].join("\n\n"),
+        true,
+      );
+      const data = parseJsonText(text);
+      if (!data?.intro || !data?.goal || !Array.isArray(data?.hints)) {
+        throw new Error("調整結果を読み取れませんでした");
+      }
+      const moods = ["neutral", "happy", "thinking", "encourage", "surprised"];
+      const tuned = {
+        ...baseLesson,
+        title: String(data.title || baseLesson.title).slice(0, 40),
+        intro: String(data.intro).slice(0, 160),
+        goal: String(data.goal).slice(0, 120),
+        hints: data.hints.slice(0, 2).map((hint) => String(hint).slice(0, 180)),
+        mood: moods.includes(data.mood) ? data.mood : "neutral",
+      };
+      tunedLessons.set(baseLesson.id, tuned);
+      if (activeLessonId === baseLesson.id && !aiLesson) {
+        renderLesson();
+        setRobotMood(tuned.mood, 2800);
+        robotSpeak(tuned.intro);
+      }
+    } catch {
+      if (activeLessonId === baseLesson.id && !aiLesson) {
+        setRobotMood("encourage", 2200);
+        robotSpeak(baseLesson.intro);
+      }
+    } finally {
+      setTutorBusy(false);
     }
   }
 
@@ -865,6 +960,10 @@ doubled >> Display.`;
       const match = text.match(/\{[\s\S]*\}/);
       return match ? JSON.parse(match[0]) : null;
     }
+  }
+
+  function hasFinalDisplay(source) {
+    return />>\s*Display\.\s*$/.test(String(source || ""));
   }
 
   async function askRobot(event, {
@@ -974,6 +1073,9 @@ doubled >> Display.`;
       );
       const data = parseJsonText(text);
       if (!data?.starter || !data?.solution || !data?.goal) throw new Error("AIの問題形式を読み取れませんでした");
+      if (!hasFinalDisplay(data.starter) || !hasFinalDisplay(data.solution)) {
+        throw new Error("最後に Display を使う問題を作れませんでした");
+      }
       aiLesson = {
         id: `ai-${Date.now()}`,
         badge: "AI",
@@ -1179,6 +1281,7 @@ doubled >> Display.`;
     elements.lessonTitleButton.addEventListener("click", showLessonOverview);
     elements.welcomeTutorButton.addEventListener("click", showTutorProfile);
     elements.tutorProfileForm.addEventListener("submit", welcomeTutor);
+    elements.resetLessonButton.addEventListener("click", resetLessons);
     elements.checkLessonButton.addEventListener("click", startRun);
     elements.hintButton.addEventListener("click", showLessonHint);
     elements.showAnswerButton.addEventListener("click", showLessonAnswer);
