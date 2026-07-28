@@ -729,16 +729,16 @@ doubled >> Display.`;
     elements.lessonGoal.textContent = lesson.goal;
     elements.previousLessonButton.disabled = aiLesson ? false : lessonIndex === 0;
     elements.nextLessonButton.disabled = Boolean(aiLesson) || lessonIndex === lessons.length - 1;
-    elements.checkLessonButton.disabled =
-      !runtimeReady || activeLessonId !== lesson.id || currentSidePanel !== "lesson";
     elements.hintButton.disabled = activeLessonId !== lesson.id;
     elements.showAnswerButton.disabled = activeLessonId !== lesson.id;
     const canAdvance = completedLessons.has(lesson.id) || lesson.passed;
-    elements.advanceLessonButton.hidden = !canAdvance;
-    elements.advanceLessonButton.textContent =
-      aiLesson || lessonIndex === lessons.length - 1
-        ? "次のAI問題へ →"
-        : "次のレッスンへ →";
+    elements.checkLessonButton.disabled =
+      !canAdvance &&
+      (!runtimeReady || activeLessonId !== lesson.id || currentSidePanel !== "lesson");
+    elements.checkLessonButton.dataset.action = canAdvance ? "advance" : "check";
+    elements.checkLessonButton.textContent =
+      canAdvance ? "次へ進む →" : "✓ 答え合わせ";
+    elements.advanceLessonButton.hidden = true;
   }
 
   function clearLessonChat() {
@@ -1084,9 +1084,6 @@ doubled >> Display.`;
         STORAGE.lessonProgress,
         JSON.stringify([...completedLessons]),
       );
-      if (lessonIndex < lessons.length - 1) {
-        elements.advanceLessonButton.hidden = false;
-      }
       renderLesson();
       prefetchFollowingLesson();
       await askRobot(
@@ -1538,6 +1535,18 @@ doubled >> Display.`;
     selectLesson(lessonIndex + 1);
   }
 
+  function checkOrAdvanceLesson() {
+    const lesson = currentLesson();
+    const canAdvance = lesson &&
+      (completedLessons.has(lesson.id) || lesson.passed);
+    if (canAdvance) {
+      elements.checkLessonButton.disabled = true;
+      advanceLesson();
+      return;
+    }
+    startRun();
+  }
+
   function previousLesson() {
     if (aiLesson) {
       aiLesson = null;
@@ -1651,7 +1660,7 @@ doubled >> Display.`;
     elements.welcomeTutorButton.addEventListener("click", showTutorProfile);
     elements.tutorProfileForm.addEventListener("submit", welcomeTutor);
     elements.resetLessonButton.addEventListener("click", resetLessons);
-    elements.checkLessonButton.addEventListener("click", startRun);
+    elements.checkLessonButton.addEventListener("click", checkOrAdvanceLesson);
     elements.hintButton.addEventListener("click", showLessonHint);
     elements.showAnswerButton.addEventListener("click", showLessonAnswer);
     elements.aiLessonButton.addEventListener("click", createAiLesson);
