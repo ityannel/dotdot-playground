@@ -641,7 +641,7 @@ body.lesson-open .workspace {
 .lesson-panel.welcome-mode .tutor-header {
   position: absolute;
   z-index: 2;
-  top: 18%;
+  top: 23%;
   left: 50%;
   flex-direction: column;
   transform: translate(-50%, -50%);
@@ -652,7 +652,7 @@ body.lesson-open .workspace {
 .lesson-panel.welcome-mode .tutor-online { display: none; }
 .lesson-panel.welcome-mode .tutor-reset { display: none; }
 .lesson-panel.welcome-mode .robot-avatar { transform: scale(1.75); margin-bottom: 18px; }
-.lesson-panel.welcome-mode .welcome-intro { transform: translateY(12px); }
+.lesson-panel.welcome-mode .welcome-intro { transform: translateY(-8px); }
 .lesson-panel.profile-mode .tutor-header { display: none; }
 
 .lesson-panel.profile-mode .tutor-welcome {
