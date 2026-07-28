@@ -79,6 +79,8 @@ doubled >> Display.`;
   let tutorProfile = { level: "はじめて", goal: "" };
   let tutorProfileRevision = 0;
   let tutorRequestSequence = 0;
+  let sourceValidationSequence = 0;
+  const sourceValidationRequests = new Map();
   let geminiRequestQueue = Promise.resolve();
   let lastGeminiRequestAt = 0;
 
@@ -325,6 +327,15 @@ doubled >> Display.`;
       currentAst = message.ast;
       showDiagnostics(message.diagnostics ?? []);
       renderAst(currentAst);
+      return;
+    }
+    if (message.type === "source-validation") {
+      const pending = sourceValidationRequests.get(message.requestId);
+      if (pending) {
+        sourceValidationRequests.delete(message.requestId);
+        clearTimeout(pending.timeout);
+        pending.resolve({ ok: message.ok === true, error: message.error || "" });
+      }
       return;
     }
     if (message.type === "result") {
@@ -921,7 +932,11 @@ doubled >> Display.`;
           "あなたはPopPop言語の教材編集者です。",
           "次の既存レッスンを参考に、学習者一人のための新しい問題を一問だけ作ってください。",
           `今回必ず学ぶ機能は ${requiredFeature} です。starterとsolutionの両方で使ってください。`,
-          "元のコードと同じ確実な構文構造を使い、値・変数名・題材・正解条件は変えて構いません。",
+          "元のコードのパイプ、文末、ブロック構造は一切増減させないでください。",
+          "変更してよいのは、文字列・数値・小文字の変数名と、既存ブロック内の短い式だけです。",
+          "存在しない関数呼び出し形式を作ってはいけません。Range(1, 6)、Sum()、Check(x) のようには書けません。",
+          "標準関数は `1 >> Range >> values.` や `values >> Sum >> total.` のようにパイプの段階として書きます。",
+          "Mapなどの置換名だけは、元の例と同じ `Map(name): ... ..` の形を保ちます。",
           "starterは実行可能だが目標をまだ満たさず、solutionは目標を満たす完成コードにします。",
           "starterとsolutionの最後の文は、必ず `値または変数 >> Display.` にしてください。",
           "改行には構文上の意味がありません。通常の文は `.`、ブロック全体は `..` で閉じます。",
@@ -962,6 +977,17 @@ doubled >> Display.`;
     ) {
       throw new Error("生成した問題がレッスン条件を満たしませんでした");
     }
+    const [starterValidation, solutionValidation] = await Promise.all([
+      validateGeneratedSource(data.starter),
+      validateGeneratedSource(data.solution),
+    ]);
+    if (!starterValidation.ok || !solutionValidation.ok) {
+      throw new Error(
+        `生成コードに未定義の文法があります: ${
+          starterValidation.error || solutionValidation.error || "構文エラー"
+        }`,
+      );
+    }
     const moods = ["neutral", "happy", "thinking", "encourage", "surprised"];
     return {
       ...baseLesson,
@@ -974,6 +1000,25 @@ doubled >> Display.`;
       hints: data.hints.slice(0, 2).map((hint) => String(hint).slice(0, 180)),
       mood: moods.includes(data.mood) ? data.mood : "neutral",
     };
+  }
+
+  function validateGeneratedSource(source) {
+    if (!runtimeReady || !worker) {
+      return Promise.resolve({ ok: false, error: "実行環境の準備ができていません" });
+    }
+    const requestId = ++sourceValidationSequence;
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        sourceValidationRequests.delete(requestId);
+        resolve({ ok: false, error: "構文検査が時間切れになりました" });
+      }, 10000);
+      sourceValidationRequests.set(requestId, { resolve, timeout });
+      worker.postMessage({
+        type: "validate-source",
+        requestId,
+        source: String(source || ""),
+      });
+    });
   }
 
   async function showLessonHint() {
