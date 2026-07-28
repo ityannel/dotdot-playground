@@ -638,21 +638,34 @@ body.lesson-open .workspace {
   to { transform: translateY(-8px) rotate(18deg); }
 }
 
+.lesson-panel.welcome-mode {
+  flex: 1;
+  min-height: 0;
+}
+
 .lesson-panel.welcome-mode .tutor-header {
-  position: absolute;
-  z-index: 2;
-  top: 23%;
-  left: 50%;
+  position: static;
   flex-direction: column;
-  transform: translate(-50%, -50%);
+  padding: 20px 2px 8px;
+  transform: none;
 }
 
 .lesson-panel.welcome-mode .tutor-header > div:last-child { text-align: center; }
 .lesson-panel.welcome-mode .tutor-header strong { font-size: 14px; }
 .lesson-panel.welcome-mode .tutor-online { display: none; }
 .lesson-panel.welcome-mode .tutor-reset { display: none; }
-.lesson-panel.welcome-mode .robot-avatar { transform: scale(1.75); margin-bottom: 18px; }
-.lesson-panel.welcome-mode .welcome-intro { transform: translateY(-8px); }
+.lesson-panel.welcome-mode .robot-avatar {
+  margin: 14px 0 22px;
+  transform: scale(1.75);
+}
+
+.lesson-panel.welcome-mode .tutor-welcome {
+  justify-content: flex-start;
+  padding: 18px 4px 16px;
+}
+
+.lesson-panel.welcome-mode .tutor-welcome h2 { margin-top: 0; }
+.lesson-panel.welcome-mode .welcome-intro { transform: none; }
 .lesson-panel.profile-mode .tutor-header { display: none; }
 
 .lesson-panel.profile-mode .tutor-welcome {
