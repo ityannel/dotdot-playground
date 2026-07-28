@@ -9,6 +9,7 @@
     lessonProgress: "poppop.playground.lessonProgress.v2",
     tutorWelcomed: "poppop.playground.tutorWelcomed.v2",
     tutorProfile: "poppop.playground.tutorProfile.v1",
+    tutorLearning: "poppop.playground.tutorLearning.v1",
   };
   const FALLBACK_SOURCE = `[1, 2, 3, 4] >> Map(value):
     value * 2.
@@ -77,6 +78,7 @@ doubled >> Display.`;
   let tuningRequests = new Map();
   let tutorWelcomed = localStorage.getItem(STORAGE.tutorWelcomed) === "yes";
   let tutorProfile = { level: "はじめて", goal: "" };
+  let tutorLearning = { lessons: {}, recent: [] };
   let tutorProfileRevision = 0;
   let tutorRequestSequence = 0;
   let sourceValidationSequence = 0;
@@ -98,6 +100,15 @@ doubled >> Display.`;
     };
   } catch {
     tutorProfile = { level: "はじめて", goal: "" };
+  }
+  try {
+    tutorLearning = {
+      lessons: {},
+      recent: [],
+      ...JSON.parse(localStorage.getItem(STORAGE.tutorLearning) || "{}"),
+    };
+  } catch {
+    tutorLearning = { lessons: {}, recent: [] };
   }
 
   function getSharedSource() {
@@ -357,6 +368,7 @@ doubled >> Display.`;
         elements.runState.textContent = "エラー";
         selectResultTab("diagnostics");
         if (activeLessonId && currentSidePanel === "lesson") {
+          recordLearning("failure", activeLessonId, localizeError(message.error));
           askRobot("runtime_error", {
             extra: `実行エラー:\n${localizeError(message.error)}`,
             fallback: explainLessonError(message.error),
@@ -803,6 +815,8 @@ doubled >> Display.`;
     tutorProfileRevision += 1;
     tunedLessons.clear();
     tuningRequests.clear();
+    tutorLearning = { lessons: {}, recent: [] };
+    saveTutorLearning();
     tutorWelcomed = true;
     localStorage.setItem(STORAGE.tutorWelcomed, "yes");
     lessonIndex = 0;
@@ -821,6 +835,7 @@ doubled >> Display.`;
     hintIndex = 0;
     lessonIndex = 0;
     tutorProfile = { level: "はじめて", goal: "" };
+    tutorLearning = { lessons: {}, recent: [] };
     tutorProfileRevision += 1;
     tutorWelcomed = false;
     tutorRequestSequence += 1;
@@ -828,6 +843,7 @@ doubled >> Display.`;
     localStorage.removeItem(STORAGE.lessonIndex);
     localStorage.removeItem(STORAGE.tutorProfile);
     localStorage.removeItem(STORAGE.tutorWelcomed);
+    localStorage.removeItem(STORAGE.tutorLearning);
     elements.tutorProfileForm.reset();
     elements.tutorProfileForm.hidden = true;
     elements.welcomeIntro.hidden = false;
@@ -857,13 +873,14 @@ doubled >> Display.`;
       } else if (cachedTuning) {
         setRobotMood(cachedTuning.mood || "neutral", 2800);
         robotSpeak(cachedTuning.intro);
-        prefetchFollowingLesson();
       } else {
         void askRobot(firstMeeting ? "first_meeting" : "lesson_start", {
           fallback: firstMeeting
             ? `はじめまして！ ロボット君です。\n最初の目標は「${lesson.goal}」。一緒にやってみよう！`
             : `${lesson.intro}\n目標は「${lesson.goal}」。できたら答え合わせしてね。`,
-        }).finally(prefetchFollowingLesson);
+        }).finally(() => {
+          if (lessonIndex === 0) prefetchFollowingLesson();
+        });
       }
     }
   }
@@ -952,6 +969,8 @@ doubled >> Display.`;
           "moodは neutral, happy, thinking, encourage, surprised のいずれかです。",
           `学習者の経験: ${tutorProfile.level}`,
           `学習者が作りたいもの: ${tutorProfile.goal || "まだ決めていない"}`,
+          `これまでの学習記録: ${learningSummary()}`,
+          `今回の難易度方針: ${nextDifficultyGuidance()}`,
           `元の題名: ${baseLesson.title}`,
           `元の導入: ${baseLesson.intro}`,
           `元の目標: ${baseLesson.goal}`,
@@ -1028,6 +1047,7 @@ doubled >> Display.`;
     if (!hints.length) return;
     const hint = hints[hintIndex];
     hintIndex = Math.min(hintIndex + 1, hints.length - 1);
+    recordLearning("hint", lesson.id, hint);
     await askRobot("hint", {
       extra: `教材のヒント: ${hint}`,
       fallback: `ここに注目してみよう：${hint}`,
@@ -1037,6 +1057,7 @@ doubled >> Display.`;
   async function showLessonAnswer() {
     const lesson = currentLesson();
     if (!lesson || activeLessonId !== lesson.id) return;
+    recordLearning("answer", lesson.id, "完成例を表示");
     setSource(lesson.solution);
     await askRobot("answer_revealed", {
       fallback: "答えを表示したよ。実行して、値の流れを一緒に確かめよう。",
@@ -1047,6 +1068,7 @@ doubled >> Display.`;
     const lesson = currentLesson();
     if (!lesson || activeLessonId !== lesson.id) return;
     if (validation.passed) {
+      recordLearning("success", lesson.id, validation.message);
       completedLessons.add(lesson.id);
       localStorage.setItem(
         STORAGE.lessonProgress,
@@ -1056,6 +1078,7 @@ doubled >> Display.`;
         elements.advanceLessonButton.hidden = false;
       }
       renderLesson();
+      prefetchFollowingLesson();
       await askRobot(
         lessonIndex < lessons.length - 1 ? "correct" : "course_complete",
         {
@@ -1067,6 +1090,7 @@ doubled >> Display.`;
         },
       );
     } else {
+      recordLearning("failure", lesson.id, validation.message);
       await askRobot("incorrect", {
         extra: `実行環境の判定: ${validation.message}`,
         fallback: `${validation.message}\nあと少し。コードの流れを一緒に見直そう。`,
@@ -1153,6 +1177,7 @@ doubled >> Display.`;
           `出来事: ${event}`,
           `学習者の経験: ${tutorProfile.level}`,
           `学習者が作りたいもの: ${tutorProfile.goal || "まだ決めていない"}`,
+          `これまでの学習記録: ${learningSummary()}`,
           `レッスン: ${lesson?.title || "なし"}`,
           `目標: ${lesson?.goal || "なし"}`,
           `現在のコード:\n${getSource()}`,
@@ -1202,6 +1227,7 @@ doubled >> Display.`;
       const data = parseJsonText(text);
       const passed = data?.passed === true;
       if (passed && lessons.some((baseLesson) => baseLesson.id === lesson.id)) {
+        recordLearning("success", lesson.id, data?.message || "目標達成");
         completedLessons.add(lesson.id);
         localStorage.setItem(
           STORAGE.lessonProgress,
@@ -1209,6 +1235,9 @@ doubled >> Display.`;
         );
         elements.advanceLessonButton.hidden = lessonIndex >= lessons.length - 1;
         renderLesson();
+        prefetchFollowingLesson();
+      } else if (!passed) {
+        recordLearning("failure", lesson.id, data?.message || "目標未達成");
       }
       const mood = ["happy", "encourage", "thinking", "surprised"].includes(data?.mood)
         ? data.mood
@@ -1302,6 +1331,69 @@ doubled >> Display.`;
       return `まだ名前が作られていないようです。\n${localized}\n名前を付けるパイプが先に実行されているか見てみよう。`;
     }
     return `実行中に問題を見つけました。\n${localized}\n慌てなくて大丈夫。ヒントも使えます。`;
+  }
+
+  function saveTutorLearning() {
+    localStorage.setItem(STORAGE.tutorLearning, JSON.stringify(tutorLearning));
+  }
+
+  function recordLearning(kind, lessonId, detail = "") {
+    if (!lessonId) return;
+    const stats = tutorLearning.lessons[lessonId] || {
+      attempts: 0,
+      failures: 0,
+      hints: 0,
+      answers: 0,
+      successes: 0,
+      lastIssue: "",
+    };
+    if (kind === "success") {
+      stats.attempts += 1;
+      stats.successes += 1;
+    } else if (kind === "failure") {
+      stats.attempts += 1;
+      stats.failures += 1;
+      stats.lastIssue = String(detail).slice(0, 180);
+    } else if (kind === "hint") {
+      stats.hints += 1;
+    } else if (kind === "answer") {
+      stats.answers = (stats.answers || 0) + 1;
+    }
+    tutorLearning.lessons[lessonId] = stats;
+    tutorLearning.recent = [
+      ...(tutorLearning.recent || []),
+      {
+        kind,
+        lessonId,
+        detail: String(detail).slice(0, 180),
+      },
+    ].slice(-8);
+    saveTutorLearning();
+  }
+
+  function learningSummary() {
+    const entries = Object.entries(tutorLearning.lessons || {});
+    if (!entries.length) return "まだ記録はありません";
+    return entries.map(([id, stats]) =>
+      `${id}: 挑戦${stats.attempts || 0}回、失敗${stats.failures || 0}回、` +
+      `ヒント${stats.hints || 0}回、答え表示${stats.answers || 0}回、正解${stats.successes || 0}回` +
+      (stats.lastIssue ? `、直近の課題「${stats.lastIssue}」` : "")
+    ).join(" / ");
+  }
+
+  function nextDifficultyGuidance() {
+    const stats = Object.values(tutorLearning.lessons || {});
+    const failures = stats.reduce((sum, item) => sum + (item.failures || 0), 0);
+    const hints = stats.reduce((sum, item) => sum + (item.hints || 0), 0);
+    const answers = stats.reduce((sum, item) => sum + (item.answers || 0), 0);
+    const successes = stats.reduce((sum, item) => sum + (item.successes || 0), 0);
+    if (failures >= successes + 2 || hints + answers >= successes + 2) {
+      return "一度に直す場所を一つにし、具体例を含むやさしい説明にする";
+    }
+    if (successes >= 3 && failures === 0 && hints === 0) {
+      return "構文の骨格は変えず、値や題材を少し考えさせる内容にする";
+    }
+    return "一度に一つの概念を扱い、現在の標準的な難しさを保つ";
   }
 
   async function answerLessonQuestion(question) {
