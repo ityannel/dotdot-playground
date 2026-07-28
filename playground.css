@@ -547,6 +547,81 @@ body.lesson-open .workspace {
 }
 
 .profile-goal input:focus { border-color: var(--accent); }
+
+.profile-optional {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel-2) 76%, transparent);
+}
+
+.profile-optional summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 12px;
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+
+.profile-optional summary::-webkit-details-marker { display: none; }
+
+.profile-optional summary::after {
+  content: "＋";
+  color: var(--accent-3);
+  font-size: 14px;
+}
+
+.profile-optional[open] summary::after { content: "−"; }
+
+.profile-optional summary span {
+  margin-left: auto;
+  margin-right: 8px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgb(51 119 255 / 14%);
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.profile-optional > p {
+  margin: -2px 12px 10px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.profile-optional-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  padding: 0 12px 12px;
+}
+
+.profile-optional-grid label > span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.profile-optional-grid select {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 26px 9px 9px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  outline: none;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 9px;
+}
+
+.profile-optional-grid select:focus { border-color: var(--accent); }
 .tutor-profile button { margin-top: 2px; }
 
 .welcome-spark {
@@ -579,6 +654,12 @@ body.lesson-open .workspace {
 .lesson-panel.welcome-mode .robot-avatar { transform: scale(1.75); margin-bottom: 18px; }
 .lesson-panel.welcome-mode .welcome-intro { transform: translateY(30px); }
 .lesson-panel.profile-mode .tutor-header { display: none; }
+
+.lesson-panel.profile-mode .tutor-welcome {
+  justify-content: flex-start;
+  overflow-y: auto;
+  padding-top: 16px;
+}
 
 .robot-avatar {
   position: relative;
@@ -875,6 +956,14 @@ body.lesson-open .workspace {
 .chat-message.success .chat-bubble {
   border: 1px solid rgb(97 214 144 / 30%);
   background: rgb(97 214 144 / 9%);
+}
+
+.chat-context {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
 }
 
 .tutor-thinking {
