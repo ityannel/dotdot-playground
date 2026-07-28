@@ -202,6 +202,30 @@ json.dumps({
   });
 }
 
+async function preflightProgram(source, requestId) {
+  const runtime = await boot();
+  const output = [];
+  runtime.setStdout({ batched: (text) => output.push(String(text)) });
+  runtime.setStderr({ batched: () => {} });
+  runtime.globals.set("__poppop_source", source);
+  const payload = await runtime.runPythonAsync(`
+import json
+from poppop_lang.cli import evaluate, format_error
+try:
+    __result = await evaluate(__poppop_source)
+    __payload = {"ok": True, "result": __result}
+except Exception as __error:
+    __payload = {"ok": False, "error": format_error(__error), "result": None}
+json.dumps(__payload, ensure_ascii=False, default=str)
+`);
+  self.postMessage({
+    type: "program-preflight",
+    requestId,
+    ...JSON.parse(payload),
+    output: output.join("\n"),
+  });
+}
+
 self.addEventListener("message", (event) => {
   const message = event.data ?? {};
   if (message.type === "input-result") {
@@ -248,6 +272,19 @@ self.addEventListener("message", (event) => {
         requestId: message.requestId,
         ok: false,
         error: error instanceof Error ? error.message : String(error),
+      });
+    });
+    return;
+  }
+
+  if (message.type === "preflight-program") {
+    preflightProgram(String(message.source ?? ""), message.requestId).catch((error) => {
+      self.postMessage({
+        type: "program-preflight",
+        requestId: message.requestId,
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+        output: "",
       });
     });
   }
