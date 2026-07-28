@@ -38,7 +38,7 @@ doubled >> Display.`;
       "lessonTitleButton", "nextLessonButton", "lessonBadge", "lessonTitle",
       "lessonGoal", "lessonChat", "robotAvatar", "tutorStatus",
       "tutorWelcome", "tutorSession", "welcomeIntro", "welcomeTutorButton",
-      "tutorProfileForm", "tutorGoal", "tutorThinking", "resetLessonButton",
+      "tutorProfileForm", "tutorGoal", "tutorThinking", "lessonTuning", "resetLessonButton",
       "checkLessonButton",
       "hintButton", "showAnswerButton", "lessonQuestionForm", "lessonQuestion",
       "aiLessonButton", "advanceLessonButton",
@@ -791,6 +791,11 @@ doubled >> Display.`;
     elements.tutorThinking.hidden = !busy;
   }
 
+  function setLessonTuning(busy) {
+    elements.lessonTuning.hidden = !busy;
+    elements.tutorSession.setAttribute("aria-busy", String(busy));
+  }
+
   function selectLesson(nextIndex) {
     if (!lessons.length) return;
     aiLesson = null;
@@ -931,6 +936,7 @@ doubled >> Display.`;
 
     setRobotMood("thinking");
     setTutorBusy(true);
+    setLessonTuning(true);
     try {
       const tuned = await request;
       if (tuned && activeLessonId === baseLesson.id && !aiLesson) {
@@ -947,6 +953,7 @@ doubled >> Display.`;
       }
       return null;
     } finally {
+      setLessonTuning(false);
       setTutorBusy(false);
     }
   }
