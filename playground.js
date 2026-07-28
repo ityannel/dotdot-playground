@@ -83,6 +83,8 @@ doubled >> Display.`;
   let tutorRequestSequence = 0;
   let sourceValidationSequence = 0;
   const sourceValidationRequests = new Map();
+  let programPreflightSequence = 0;
+  const programPreflightRequests = new Map();
   let geminiRequestQueue = Promise.resolve();
   let lastGeminiRequestAt = 0;
 
@@ -347,6 +349,20 @@ doubled >> Display.`;
         sourceValidationRequests.delete(message.requestId);
         clearTimeout(pending.timeout);
         pending.resolve({ ok: message.ok === true, error: message.error || "" });
+      }
+      return;
+    }
+    if (message.type === "program-preflight") {
+      const pending = programPreflightRequests.get(message.requestId);
+      if (pending) {
+        programPreflightRequests.delete(message.requestId);
+        clearTimeout(pending.timeout);
+        pending.resolve({
+          ok: message.ok === true,
+          result: message.result,
+          output: String(message.output || ""),
+          error: message.error || "",
+        });
       }
       return;
     }
@@ -1057,6 +1073,25 @@ doubled >> Display.`;
     });
   }
 
+  function preflightGeneratedSource(source) {
+    if (!runtimeReady || !worker) {
+      return Promise.resolve({ ok: false, error: "実行環境の準備ができていません" });
+    }
+    const requestId = ++programPreflightSequence;
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        programPreflightRequests.delete(requestId);
+        resolve({ ok: false, error: "事前実行が時間切れになりました", output: "" });
+      }, 12000);
+      programPreflightRequests.set(requestId, { resolve, timeout });
+      worker.postMessage({
+        type: "preflight-program",
+        requestId,
+        source: String(source || ""),
+      });
+    });
+  }
+
   async function showLessonHint() {
     const lesson = currentLesson();
     if (!lesson || activeLessonId !== lesson.id) return;
@@ -1279,19 +1314,26 @@ doubled >> Display.`;
     const text = await callGemini(
         [
           "あなたはPopPop言語のやさしい先生です。",
-          "初心者向けの短い練習問題を1つ作ってください。",
+          "基礎8問を終えた学習者向けの、少し発展的な練習問題を1つ作ってください。",
           "PopPopは `>>` で値を流し、通常の文は `.`、ブロック全体は `..` で閉じます。",
           "使えるもの: Display, Map(name):, Filter(name):, Reduce(name):, Check(name): is ... else:, Update(name):, Fork(name):, Range, Sum, Length, Random, Get。",
           "標準関数を `Range(1, 6)` や `Sum()` のような括弧付き関数呼び出しにしてはいけません。",
           "標準関数は `1 >> Range >> values.` や `values >> Sum >> total.` のように、パイプの段階として書いてください。",
           "ブロックは提示した `Map(name): ... ..` などの形を崩さないでください。",
           "最終結果は必ず `>> Display.` で表示してください。",
-          "starterには、学習者が直すべき誤りを一つだけ残しても構いません。その場合、goalとhintsで直す場所を自然に示してください。",
+          "starterには、学習者が必ず修正しなければ目標を達成できない誤りを一つだけ残してください。",
+          "starterとsolutionは、変数名や空白だけでなく、演算子・条件・値・処理段階のいずれかが意味的に異なる必要があります。",
+          "starterをそのまま実行して正解になる問題は絶対に作らないでください。",
           "solutionは必ず、その誤りを直した実行可能な完成形にしてください。",
-          "次の検査済みの形から一つを選び、値・名前・短い式だけを題材に合わせて変更してください。",
+          "InputとRandomは使わず、同じ入力なら常に同じ結果になる問題にしてください。",
+          "学習者が作りたいものを単に題名へ入れるのではなく、その用途で本当に使うデータと計算に反映してください。",
+          "買い物の集計、ゲームの得点判定、予定や記録の整理など、結果の使い道が分かる実利的な題材にしてください。",
+          "可能なら Filter の後に Sum を使うなど、既習機能を2段階以上組み合わせてください。",
+          "次の検査済みの形を参考に、値・名前・式を題材に合わせて変更してください。",
           "Mapの形:\n[1, 2, 3] >> Map(value):\n    value * 2.\n.. >> result.\nresult >> Display.",
           "Filterの形:\n[1, 2, 3, 4] >> Filter(value):\n    value % 2 == 0.\n.. >> result.\nresult >> Display.",
           "Reduceの形:\n[1, 2, 3] >> Reduce(values):\n    values[0] + values[1].\n.. >> result.\nresult >> Display.",
+          "二段階集計の形:\n[120, 80, 250] >> Filter(price):\n    price >= 100.\n.. >> selected.\nselected >> Sum >> total.\ntotal >> Display.",
           `学習者の経験は「${tutorProfile.level}」です。難しさと説明量を合わせてください。`,
           `作りたいものは「${tutorProfile.goal || "まだ決めていない"}」です。できるだけ近い題材にしてください。`,
           `これまでの学習記録: ${learningSummary()}`,
@@ -1313,6 +1355,15 @@ doubled >> Display.`;
     if (!hasFinalDisplay(data.starter) || !hasFinalDisplay(data.solution)) {
       throw new Error("最後に Display を使う問題を作れませんでした");
     }
+    if (
+      String(data.starter).replace(/\s+/g, "") ===
+      String(data.solution).replace(/\s+/g, "")
+    ) {
+      throw new Error("開始コードが完成コードと同じです");
+    }
+    if (/\b(?:Input|Random)\b/.test(`${data.starter}\n${data.solution}`)) {
+      throw new Error("事前実行できない Input または Random が含まれています");
+    }
     const [starterValidation, solutionValidation] = await Promise.all([
       validateGeneratedSource(data.starter),
       validateGeneratedSource(data.solution),
@@ -1323,6 +1374,20 @@ doubled >> Display.`;
           solutionValidation.error || "構文エラー"
         }`,
       );
+    }
+    const solutionRun = await preflightGeneratedSource(data.solution);
+    if (!solutionRun.ok) {
+      throw new Error(`完成コードを実行できません: ${solutionRun.error || "実行エラー"}`);
+    }
+    if (starterValidation.ok) {
+      const starterRun = await preflightGeneratedSource(data.starter);
+      if (
+        starterRun.ok &&
+        JSON.stringify([starterRun.result, starterRun.output]) ===
+          JSON.stringify([solutionRun.result, solutionRun.output])
+      ) {
+        throw new Error("開始コードがすでに正解と同じ結果を出します");
+      }
     }
     return {
       data,
