@@ -48,48 +48,50 @@ export default async function handler(request, response) {
   };
   if (task === "lesson") {
     payload.generationConfig.thinkingConfig = { thinkingLevel: "low" };
-    payload.generationConfig.responseFormat = {
-      text: {
-        mimeType: "application/json",
-        schema: {
-          type: "object",
-          properties: {
-            title: { type: "string" },
-            intro: { type: "string" },
-            goal: { type: "string" },
-            starter: { type: "string" },
-            solution: { type: "string" },
-            hints: {
-              type: "array",
-              items: { type: "string" },
-              minItems: 2,
-              maxItems: 2,
-            },
-            mood: {
-              type: "string",
-              enum: ["neutral", "happy", "thinking", "encourage", "surprised"],
-            },
-          },
-          required: ["title", "intro", "goal", "starter", "solution", "hints", "mood"],
-          additionalProperties: false,
+    payload.generationConfig.responseMimeType = "application/json";
+    payload.generationConfig.responseJsonSchema = {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        intro: { type: "string" },
+        goal: { type: "string" },
+        starter: { type: "string" },
+        solution: { type: "string" },
+        hints: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 2,
+          maxItems: 2,
+        },
+        mood: {
+          type: "string",
+          enum: ["neutral", "happy", "thinking", "encourage", "surprised"],
         },
       },
+      required: ["title", "intro", "goal", "starter", "solution", "hints", "mood"],
+      additionalProperties: false,
     };
   } else if (request.body?.json) {
     payload.generationConfig.responseMimeType = "application/json";
   }
 
-  const geminiResponse = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
+  const requestModel = (candidateModel) =>
+    fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${candidateModel}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify(payload),
       },
-      body: JSON.stringify(payload),
-    },
-  );
+    );
+
+  let geminiResponse = await requestModel(model);
+  if (task === "lesson" && model !== CHAT_MODEL && geminiResponse.status === 429) {
+    geminiResponse = await requestModel(CHAT_MODEL);
+  }
 
   const geminiPayload = await geminiResponse.json().catch(() => ({}));
   if (!geminiResponse.ok) {
