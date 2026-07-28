@@ -846,12 +846,11 @@ doubled >> Display.`;
         robotSpeak(cachedTuning.intro);
         prefetchFollowingLesson();
       } else {
-        askRobot(firstMeeting ? "first_meeting" : "lesson_start", {
+        void askRobot(firstMeeting ? "first_meeting" : "lesson_start", {
           fallback: firstMeeting
             ? `はじめまして！ ロボット君です。\n最初の目標は「${lesson.goal}」。一緒にやってみよう！`
             : `${lesson.intro}\n目標は「${lesson.goal}」。できたら答え合わせしてね。`,
-        });
-        prefetchFollowingLesson();
+        }).finally(prefetchFollowingLesson);
       }
     }
   }
