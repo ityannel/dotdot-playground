@@ -150,6 +150,63 @@
               <span>何を作ってみたい？</span>
               <input id="tutorGoal" type="text" maxlength="80" placeholder="ゲーム、占い、データ整理…" required>
             </label>
+            <details class="profile-optional">
+              <summary>もう少し教える <span>任意</span></summary>
+              <p>問題の題材や説明を、よりあなたに合わせるために使います。</p>
+              <div class="profile-optional-grid">
+                <label for="tutorAge">
+                  <span>年齢</span>
+                  <select id="tutorAge">
+                    <option value="">回答しない</option>
+                    <option value="12歳以下">12歳以下</option>
+                    <option value="13〜18歳">13〜18歳</option>
+                    <option value="19〜24歳">19〜24歳</option>
+                    <option value="25〜34歳">25〜34歳</option>
+                    <option value="35〜49歳">35〜49歳</option>
+                    <option value="50歳以上">50歳以上</option>
+                  </select>
+                </label>
+                <label for="tutorGender">
+                  <span>性別</span>
+                  <select id="tutorGender">
+                    <option value="">回答しない</option>
+                    <option value="女性">女性</option>
+                    <option value="男性">男性</option>
+                    <option value="ノンバイナリー">ノンバイナリー</option>
+                    <option value="その他">その他</option>
+                  </select>
+                </label>
+                <label for="tutorLocation">
+                  <span>場所</span>
+                  <select id="tutorLocation">
+                    <option value="">回答しない</option>
+                    <option value="北海道">北海道</option>
+                    <option value="東北">東北</option>
+                    <option value="関東">関東</option>
+                    <option value="中部">中部</option>
+                    <option value="近畿">近畿</option>
+                    <option value="中国">中国</option>
+                    <option value="四国">四国</option>
+                    <option value="九州・沖縄">九州・沖縄</option>
+                    <option value="日本以外">日本以外</option>
+                  </select>
+                </label>
+                <label for="tutorOccupation">
+                  <span>職業</span>
+                  <select id="tutorOccupation">
+                    <option value="">回答しない</option>
+                    <option value="小学生">小学生</option>
+                    <option value="中学生">中学生</option>
+                    <option value="高校生">高校生</option>
+                    <option value="大学生・専門学生">大学生・専門学生</option>
+                    <option value="会社員">会社員</option>
+                    <option value="自営業・フリーランス">自営業・フリーランス</option>
+                    <option value="教育関係">教育関係</option>
+                    <option value="その他">その他</option>
+                  </select>
+                </label>
+              </div>
+            </details>
             <button type="submit">
               わたし向けに始める <span aria-hidden="true">→</span>
             </button>
