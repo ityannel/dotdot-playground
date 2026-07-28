@@ -183,6 +183,25 @@ get_ast_json(__poppop_source)
   }
 }
 
+async function validateSource(source, requestId) {
+  const runtime = await boot();
+  runtime.globals.set("__poppop_source", source);
+  const payload = JSON.parse(runtime.runPython(`
+import json
+from poppop_lang.cli import get_ast_json
+__ast = json.loads(get_ast_json(__poppop_source))
+json.dumps({
+    "ok": not bool(__ast.get("error")),
+    "error": __ast.get("error"),
+}, ensure_ascii=False)
+`));
+  self.postMessage({
+    type: "source-validation",
+    requestId,
+    ...payload,
+  });
+}
+
 self.addEventListener("message", (event) => {
   const message = event.data ?? {};
   if (message.type === "input-result") {
@@ -217,6 +236,18 @@ self.addEventListener("message", (event) => {
         requestId: message.requestId,
         diagnostics: [error instanceof Error ? error.message : String(error)],
         ast: null,
+      });
+    });
+    return;
+  }
+
+  if (message.type === "validate-source") {
+    validateSource(String(message.source ?? ""), message.requestId).catch((error) => {
+      self.postMessage({
+        type: "source-validation",
+        requestId: message.requestId,
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
       });
     });
   }
