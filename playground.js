@@ -74,8 +74,10 @@ doubled >> Display.`;
   let robotMoodTimer = null;
   let aiLesson = null;
   let tunedLessons = new Map();
+  let tuningRequests = new Map();
   let tutorWelcomed = localStorage.getItem(STORAGE.tutorWelcomed) === "yes";
   let tutorProfile = { level: "はじめて", goal: "" };
+  let tutorProfileRevision = 0;
   let tutorRequestSequence = 0;
 
   try {
@@ -785,6 +787,9 @@ doubled >> Display.`;
       goal: elements.tutorGoal.value.trim(),
     };
     localStorage.setItem(STORAGE.tutorProfile, JSON.stringify(tutorProfile));
+    tutorProfileRevision += 1;
+    tunedLessons.clear();
+    tuningRequests.clear();
     tutorWelcomed = true;
     localStorage.setItem(STORAGE.tutorWelcomed, "yes");
     lessonIndex = 0;
@@ -797,11 +802,13 @@ doubled >> Display.`;
     if (!confirm("レッスン進捗と、経験レベル・作りたいものなどのAI設定をすべて消しますか？")) return;
     completedLessons.clear();
     tunedLessons.clear();
+    tuningRequests.clear();
     aiLesson = null;
     activeLessonId = null;
     hintIndex = 0;
     lessonIndex = 0;
     tutorProfile = { level: "はじめて", goal: "" };
+    tutorProfileRevision += 1;
     tutorWelcomed = false;
     tutorRequestSequence += 1;
     localStorage.removeItem(STORAGE.lessonProgress);
@@ -833,28 +840,83 @@ doubled >> Display.`;
       const baseLesson = lessons[lessonIndex];
       const cachedTuning = baseLesson ? tunedLessons.get(baseLesson.id) : null;
       if (!aiLesson && lessonIndex > 0 && !cachedTuning) {
-        tuneLessonForProfile(baseLesson);
+        void tuneLessonForProfile(baseLesson).then(prefetchFollowingLesson);
       } else if (cachedTuning) {
         setRobotMood(cachedTuning.mood || "neutral", 2800);
         robotSpeak(cachedTuning.intro);
+        prefetchFollowingLesson();
       } else {
         askRobot(firstMeeting ? "first_meeting" : "lesson_start", {
           fallback: firstMeeting
             ? `はじめまして！ ロボット君です。\n最初の目標は「${lesson.goal}」。一緒にやってみよう！`
             : `${lesson.intro}\n目標は「${lesson.goal}」。できたら答え合わせしてね。`,
         });
+        prefetchFollowingLesson();
       }
     }
   }
 
-  async function tuneLessonForProfile(baseLesson) {
-    if (!baseLesson || baseLesson.id === lessons[0]?.id) return;
-    const requiredFeature = LESSON_FEATURES[baseLesson.id];
+  function prefetchFollowingLesson() {
+    if (!tutorWelcomed || aiLesson) return;
+    const nextLesson = lessons[lessonIndex + 1];
+    if (!nextLesson || tunedLessons.has(nextLesson.id)) return;
+    void tuneLessonForProfile(nextLesson, { background: true });
+  }
+
+  async function tuneLessonForProfile(baseLesson, { background = false } = {}) {
+    if (!baseLesson || baseLesson.id === lessons[0]?.id) return null;
+    const cached = tunedLessons.get(baseLesson.id);
+    if (cached) return cached;
+    const profileRevision = tutorProfileRevision;
+    let request = tuningRequests.get(baseLesson.id);
+    if (!request) {
+      request = generateTunedLesson(baseLesson)
+        .then((tuned) => {
+          if (profileRevision !== tutorProfileRevision) return null;
+          tunedLessons.set(baseLesson.id, tuned);
+          return tuned;
+        })
+        .finally(() => {
+          if (tuningRequests.get(baseLesson.id) === request) {
+            tuningRequests.delete(baseLesson.id);
+          }
+        });
+      tuningRequests.set(baseLesson.id, request);
+    }
+    if (background) {
+      try {
+        return await request;
+      } catch {
+        return null;
+      }
+    }
+
     setRobotMood("thinking");
     setTutorBusy(true);
     try {
-      const text = await callGemini(
-        [
+      const tuned = await request;
+      if (tuned && activeLessonId === baseLesson.id && !aiLesson) {
+        setSource(tuned.starter);
+        renderLesson();
+        setRobotMood(tuned.mood, 2800);
+        robotSpeak(tuned.intro);
+      }
+      return tuned;
+    } catch {
+      if (activeLessonId === baseLesson.id && !aiLesson) {
+        setRobotMood("encourage", 2200);
+        robotSpeak(baseLesson.intro);
+      }
+      return null;
+    } finally {
+      setTutorBusy(false);
+    }
+  }
+
+  async function generateTunedLesson(baseLesson) {
+    const requiredFeature = LESSON_FEATURES[baseLesson.id];
+    const text = await callGemini(
+      [
           "あなたはPopPop言語の教材編集者です。",
           "次の既存レッスンを参考に、学習者一人のための新しい問題を一問だけ作ってください。",
           `今回必ず学ぶ機能は ${requiredFeature} です。starterとsolutionの両方で使ってください。`,
@@ -862,7 +924,11 @@ doubled >> Display.`;
           "starterは実行可能だが目標をまだ満たさず、solutionは目標を満たす完成コードにします。",
           "starterとsolutionの最後の文は、必ず `値または変数 >> Display.` にしてください。",
           "改行には構文上の意味がありません。通常の文は `.`、ブロック全体は `..` で閉じます。",
-          "introは80文字以内、goalは60文字以内、hintsは2個にしてください。",
+          "小学高学年でも一度で読める、自然で優しい日本語にしてください。",
+          "題名は「何を作るか」が分かる18文字以内の表現にし、できれば「〜しよう」で終えてください。",
+          "「全員を変換」「非破壊更新」「道を選ぶ」のような直訳調・仕様書調の題名は禁止です。",
+          "List、Dict、Boolean、accumulatorなどの専門語は避け、リスト、辞書、true、これまでの結果と書いてください。",
+          "一文には一つの行動だけを書き、introは80文字以内、goalは60文字以内、hintsは2個にしてください。",
           "JSONだけを返してください。",
           '形式: {"title":"題名","intro":"導入","goal":"目標","starter":"未完成コード","solution":"完成コード","hints":["ヒント1","ヒント2"],"mood":"neutral"}',
           "moodは neutral, happy, thinking, encourage, surprised のいずれかです。",
@@ -874,51 +940,37 @@ doubled >> Display.`;
           `元のヒント: ${(baseLesson.hints || []).join(" / ")}`,
           `安全な未完成コード例:\n${baseLesson.starter}`,
           `安全な完成コード例:\n${baseLesson.solution}`,
-        ].join("\n\n"),
-        true,
-      );
-      const data = parseJsonText(text);
-      if (
-        !data?.intro || !data?.goal || !data?.starter || !data?.solution ||
-        !Array.isArray(data?.hints)
-      ) {
-        throw new Error("生成した問題を読み取れませんでした");
-      }
-      if (
-        !hasFinalDisplay(data.starter) || !hasFinalDisplay(data.solution) ||
-        !String(data.starter).includes(requiredFeature) ||
-        !String(data.solution).includes(requiredFeature) ||
-        String(data.starter).trim() === String(data.solution).trim()
-      ) {
-        throw new Error("生成した問題がレッスン条件を満たしませんでした");
-      }
-      const moods = ["neutral", "happy", "thinking", "encourage", "surprised"];
-      const tuned = {
-        ...baseLesson,
-        dynamic: true,
-        title: String(data.title || baseLesson.title).slice(0, 40),
-        intro: String(data.intro).slice(0, 160),
-        goal: String(data.goal).slice(0, 120),
-        starter: String(data.starter).trim(),
-        solution: String(data.solution).trim(),
-        hints: data.hints.slice(0, 2).map((hint) => String(hint).slice(0, 180)),
-        mood: moods.includes(data.mood) ? data.mood : "neutral",
-      };
-      tunedLessons.set(baseLesson.id, tuned);
-      if (activeLessonId === baseLesson.id && !aiLesson) {
-        setSource(tuned.starter);
-        renderLesson();
-        setRobotMood(tuned.mood, 2800);
-        robotSpeak(tuned.intro);
-      }
-    } catch {
-      if (activeLessonId === baseLesson.id && !aiLesson) {
-        setRobotMood("encourage", 2200);
-        robotSpeak(baseLesson.intro);
-      }
-    } finally {
-      setTutorBusy(false);
+      ].join("\n\n"),
+      true,
+    );
+    const data = parseJsonText(text);
+    if (
+      !data?.title || !data?.intro || !data?.goal ||
+      !data?.starter || !data?.solution || !Array.isArray(data?.hints)
+    ) {
+      throw new Error("生成した問題を読み取れませんでした");
     }
+    if (
+      data.hints.length < 2 ||
+      !hasFinalDisplay(data.starter) || !hasFinalDisplay(data.solution) ||
+      !String(data.starter).includes(requiredFeature) ||
+      !String(data.solution).includes(requiredFeature) ||
+      String(data.starter).trim() === String(data.solution).trim()
+    ) {
+      throw new Error("生成した問題がレッスン条件を満たしませんでした");
+    }
+    const moods = ["neutral", "happy", "thinking", "encourage", "surprised"];
+    return {
+      ...baseLesson,
+      dynamic: true,
+      title: String(data.title).slice(0, 40),
+      intro: String(data.intro).slice(0, 160),
+      goal: String(data.goal).slice(0, 120),
+      starter: String(data.starter).trim(),
+      solution: String(data.solution).trim(),
+      hints: data.hints.slice(0, 2).map((hint) => String(hint).slice(0, 180)),
+      mood: moods.includes(data.mood) ? data.mood : "neutral",
+    };
   }
 
   async function showLessonHint() {
