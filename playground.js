@@ -988,6 +988,7 @@ doubled >> Display.`;
           `安全な完成コード例:\n${baseLesson.solution}`,
       ].join("\n\n"),
       true,
+      "lesson",
     );
     const data = parseJsonText(text);
     if (
@@ -1111,11 +1112,11 @@ doubled >> Display.`;
     return new Promise((resolve) => setTimeout(resolve, milliseconds));
   }
 
-  async function callGeminiOnce(promptText, jsonMode = false) {
+  async function callGeminiOnce(promptText, jsonMode = false, task = "chat") {
     const proxyResponse = await fetch("/api/gemini", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: promptText, json: jsonMode }),
+      body: JSON.stringify({ prompt: promptText, json: jsonMode, task }),
     }).catch(() => null);
     if (proxyResponse?.ok) {
       const payload = await proxyResponse.json();
@@ -1128,20 +1129,20 @@ doubled >> Display.`;
     throw error;
   }
 
-  function callGemini(promptText, jsonMode = false) {
+  function callGemini(promptText, jsonMode = false, task = "chat") {
     const run = async () => {
       const minimumInterval = 6500;
       const remaining = minimumInterval - (Date.now() - lastGeminiRequestAt);
       if (remaining > 0) await wait(remaining);
       lastGeminiRequestAt = Date.now();
       try {
-        return await callGeminiOnce(promptText, jsonMode);
+        return await callGeminiOnce(promptText, jsonMode, task);
       } catch (error) {
         if (error.status !== 429) throw error;
         const retryDelay = Math.max(12000, error.retryAfter * 1000);
         await wait(retryDelay);
         lastGeminiRequestAt = Date.now();
-        return callGeminiOnce(promptText, jsonMode);
+        return callGeminiOnce(promptText, jsonMode, task);
       }
     };
     const request = geminiRequestQueue.then(run, run);
@@ -1179,6 +1180,7 @@ doubled >> Display.`;
           "幼すぎない、短く自然な日本語で話します。1回の発言は原則80文字以内です。",
           "ユーザーの答えを奪わず、次の一歩が分かる言葉を選びます。",
           "正誤は与えられた実行環境の判定に必ず従い、自分で覆しません。",
+          "与えられていない原因を推測して断定してはいけません。混雑や障害は、追加情報に明記された場合だけ説明します。",
           "状況に合う表情をあなた自身で選んでください。",
           "moodは neutral, happy, thinking, encourage, sad, surprised のいずれかです。",
           "JSONだけを返してください。",
@@ -1269,12 +1271,8 @@ doubled >> Display.`;
     }
   }
 
-  async function createAiLesson() {
-    elements.advanceLessonButton.hidden = true;
-    setRobotMood("thinking");
-    setTutorBusy(true);
-    try {
-      const text = await callGemini(
+  async function generateOpenEndedLesson(repairNote = "") {
+    const text = await callGemini(
         [
           "あなたはPopPop言語のやさしい先生です。",
           "初心者向けの短い練習問題を1つ作ってください。",
@@ -1284,32 +1282,83 @@ doubled >> Display.`;
           "標準関数は `1 >> Range >> values.` や `values >> Sum >> total.` のように、パイプの段階として書いてください。",
           "ブロックは提示した `Map(name): ... ..` などの形を崩さないでください。",
           "最終結果は必ず `>> Display.` で表示してください。",
+          "starterには、学習者が直すべき誤りを一つだけ残しても構いません。その場合、goalとhintsで直す場所を自然に示してください。",
+          "solutionは必ず、その誤りを直した実行可能な完成形にしてください。",
+          "次の検査済みの形から一つを選び、値・名前・短い式だけを題材に合わせて変更してください。",
+          "Mapの形:\n[1, 2, 3] >> Map(value):\n    value * 2.\n.. >> result.\nresult >> Display.",
+          "Filterの形:\n[1, 2, 3, 4] >> Filter(value):\n    value % 2 == 0.\n.. >> result.\nresult >> Display.",
+          "Reduceの形:\n[1, 2, 3] >> Reduce(values):\n    values[0] + values[1].\n.. >> result.\nresult >> Display.",
           `学習者の経験は「${tutorProfile.level}」です。難しさと説明量を合わせてください。`,
           `作りたいものは「${tutorProfile.goal || "まだ決めていない"}」です。できるだけ近い題材にしてください。`,
           `これまでの学習記録: ${learningSummary()}`,
           `今回の難易度方針: ${nextDifficultyGuidance()}`,
           `基礎8問の後に解いたAI問題数: ${tutorLearning.aiCompleted || 0}`,
+          repairNote
+            ? `前回の案は検査に失敗しました: ${repairNote}\n同じ誤りを直し、完全なJSONを返してください。`
+            : "",
           "JSONだけを返してください。",
           '形式: {"title":"短いタイトル","goal":"目標","starter":"未完成コード","solution":"完成コード","hints":["ヒント1","ヒント2"]}',
-        ].join("\n"),
+        ].filter(Boolean).join("\n"),
         true,
+        "lesson",
       );
-      const data = parseJsonText(text);
-      if (!data?.starter || !data?.solution || !data?.goal) throw new Error("AIの問題形式を読み取れませんでした");
-      if (!hasFinalDisplay(data.starter) || !hasFinalDisplay(data.solution)) {
-        throw new Error("最後に Display を使う問題を作れませんでした");
+    const data = parseJsonText(text);
+    if (!data?.starter || !data?.solution || !data?.goal) {
+      throw new Error("AIの問題形式を読み取れませんでした");
+    }
+    if (!hasFinalDisplay(data.starter) || !hasFinalDisplay(data.solution)) {
+      throw new Error("最後に Display を使う問題を作れませんでした");
+    }
+    const [starterValidation, solutionValidation] = await Promise.all([
+      validateGeneratedSource(data.starter),
+      validateGeneratedSource(data.solution),
+    ]);
+    if (!solutionValidation.ok) {
+      throw new Error(
+        `完成コードに未定義の文法があります: ${
+          solutionValidation.error || "構文エラー"
+        }`,
+      );
+    }
+    return {
+      data,
+      starterIssue: starterValidation.ok
+        ? ""
+        : String(starterValidation.error || "開始コードの実行エラー"),
+    };
+  }
+
+  function aiLessonFailureMessage(error) {
+    const message = String(error?.message || "");
+    if (error?.status === 429) {
+      return "Geminiの利用上限に達したようです。少し待ってから、もう一度試してね。";
+    }
+    if (/文法|構文|Display|形式|読み取れ/.test(message)) {
+      return "問題案は届いたけれど、PopPopの検査を通過できなかったよ。もう一度押すと別の案で試せるよ。";
+    }
+    return "Geminiとの通信に失敗したよ。接続を確認して、もう一度試してね。";
+  }
+
+  async function createAiLesson() {
+    elements.advanceLessonButton.hidden = true;
+    setRobotMood("thinking");
+    setTutorBusy(true);
+    try {
+      let data = null;
+      let lastError = null;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          const generated = await generateOpenEndedLesson(
+            attempt > 0 ? String(lastError?.message || "") : "",
+          );
+          data = generated.data;
+          data.starterIssue = generated.starterIssue;
+          break;
+        } catch (error) {
+          lastError = error;
+        }
       }
-      const [starterValidation, solutionValidation] = await Promise.all([
-        validateGeneratedSource(data.starter),
-        validateGeneratedSource(data.solution),
-      ]);
-      if (!starterValidation.ok || !solutionValidation.ok) {
-        throw new Error(
-          `生成コードに未定義の文法があります: ${
-            starterValidation.error || solutionValidation.error || "構文エラー"
-          }`,
-        );
-      }
+      if (!data) throw lastError || new Error("問題を生成できませんでした");
       aiLesson = {
         id: `ai-${Date.now()}`,
         dynamic: true,
@@ -1321,6 +1370,7 @@ doubled >> Display.`;
         starter: data.starter,
         solution: data.solution,
         hints: Array.isArray(data.hints) ? data.hints : [],
+        starterIssue: data.starterIssue || "",
       };
       activeLessonId = aiLesson.id;
       hintIndex = 0;
@@ -1328,12 +1378,18 @@ doubled >> Display.`;
       renderLesson();
       clearLessonChat();
       await askRobot("ai_lesson_created", {
-        extra: `あなたが作った新しい問題の目標: ${aiLesson.goal}`,
+        extra: [
+          `あなたが作った新しい問題の目標: ${aiLesson.goal}`,
+          aiLesson.starterIssue
+            ? `開始コードの事前検査で見つかった問題: ${aiLesson.starterIssue}\nこれは学習者が直す課題です。答えを直接言わず、最初に見る場所を伝えてください。`
+            : "開始コードは事前検査を通過しました。",
+        ].join("\n"),
         fallback: `${aiLesson.title}\n${aiLesson.goal}\nできたら答え合わせしてね。`,
       });
     } catch (error) {
+      console.warn("AI lesson generation failed", error);
       setRobotMood("encourage", 1800);
-      robotSpeak("今は新しい問題を作れなかったよ。少し時間をおいて、もう一度試してね。");
+      robotSpeak(aiLessonFailureMessage(error));
       renderLesson();
     } finally {
       setTutorBusy(false);
