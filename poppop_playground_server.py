@@ -15,7 +15,11 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+CHAT_MODEL = os.environ.get(
+    "GEMINI_CHAT_MODEL",
+    os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite"),
+)
+LESSON_MODEL = os.environ.get("GEMINI_LESSON_MODEL", "gemini-3.6-flash")
 
 
 class PlaygroundHandler(SimpleHTTPRequestHandler):
@@ -37,6 +41,8 @@ class PlaygroundHandler(SimpleHTTPRequestHandler):
             request = json.loads(self.rfile.read(length).decode("utf-8"))
             prompt = str(request.get("prompt", "")).strip()
             json_mode = bool(request.get("json"))
+            task = "lesson" if request.get("task") == "lesson" else "chat"
+            model = LESSON_MODEL if task == "lesson" else CHAT_MODEL
             if not prompt:
                 self._send_json(400, {"error": "prompt is required"})
                 return
@@ -51,7 +57,7 @@ class PlaygroundHandler(SimpleHTTPRequestHandler):
             if json_mode:
                 payload["generationConfig"]["responseMimeType"] = "application/json"
 
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
             gemini_request = urllib.request.Request(
                 url,
                 data=json.dumps(payload).encode("utf-8"),
