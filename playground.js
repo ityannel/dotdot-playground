@@ -93,6 +93,7 @@ doubled >> Display.`;
   const sourceValidationRequests = new Map();
   let programPreflightSequence = 0;
   const programPreflightRequests = new Map();
+  let currentChatSection = null;
   let geminiRequestQueue = Promise.resolve();
   let lastGeminiRequestAt = 0;
 
@@ -776,6 +777,7 @@ doubled >> Display.`;
 
   function clearLessonChat() {
     elements.lessonChat.textContent = "";
+    currentChatSection = null;
   }
 
   function recentTutorConversation() {
@@ -789,7 +791,7 @@ doubled >> Display.`;
       .join("\n");
   }
 
-  function drawChatMessage(entry) {
+  function drawChatMessage(entry, target = elements.lessonChat) {
     const message = document.createElement("div");
     message.className = `chat-message ${entry.sender} ${entry.style || ""}`.trim();
     const bubble = document.createElement("div");
@@ -808,13 +810,49 @@ doubled >> Display.`;
     }
     bubble.append(document.createTextNode(entry.text));
     message.appendChild(bubble);
-    elements.lessonChat.appendChild(message);
+    target.appendChild(message);
+    return message;
+  }
+
+  function scrollChatToCurrent(behavior = "smooth") {
+    if (!currentChatSection) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        elements.lessonChat.scrollTo({
+          top: currentChatSection.offsetTop,
+          behavior,
+        });
+      });
+    });
   }
 
   function renderTutorConversation() {
     clearLessonChat();
-    (tutorLearning.conversation || []).slice(-16).forEach(drawChatMessage);
-    elements.lessonChat.scrollTop = elements.lessonChat.scrollHeight;
+    const entries = (tutorLearning.conversation || []).slice(-40);
+    const lesson = currentLesson();
+    let currentStart = entries.length;
+    while (
+      currentStart > 0 &&
+      entries[currentStart - 1].lessonId === lesson?.id
+    ) {
+      currentStart -= 1;
+    }
+
+    entries.slice(0, currentStart).forEach((entry) => drawChatMessage(entry));
+
+    currentChatSection = document.createElement("section");
+    currentChatSection.className = "chat-current-section";
+    if (currentStart > 0) {
+      const marker = document.createElement("div");
+      marker.className = "chat-current-marker";
+      marker.textContent = `ここから「${lesson?.title || "この問題"}」`;
+      currentChatSection.appendChild(marker);
+    }
+    entries
+      .slice(currentStart)
+      .forEach((entry) => drawChatMessage(entry, currentChatSection));
+    elements.lessonChat.appendChild(currentChatSection);
+    scrollChatToCurrent();
   }
 
   function addChatMessage(text, sender = "robot", style = "", persist = true) {
@@ -834,8 +872,14 @@ doubled >> Display.`;
       ].slice(-40);
       saveTutorLearning();
     }
-    drawChatMessage(entry);
-    elements.lessonChat.scrollTop = elements.lessonChat.scrollHeight;
+    if (!currentChatSection) {
+      renderTutorConversation();
+      return;
+    }
+    const message = drawChatMessage(entry, currentChatSection);
+    requestAnimationFrame(() => {
+      message.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
   }
 
   function robotSpeak(text, success = false) {
