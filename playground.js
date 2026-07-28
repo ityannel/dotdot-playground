@@ -79,6 +79,8 @@ doubled >> Display.`;
   let tutorProfile = { level: "はじめて", goal: "" };
   let tutorProfileRevision = 0;
   let tutorRequestSequence = 0;
+  let geminiRequestQueue = Promise.resolve();
+  let lastGeminiRequestAt = 0;
 
   try {
     completedLessons = new Set(
@@ -1025,7 +1027,11 @@ doubled >> Display.`;
     }
   }
 
-  async function callGemini(promptText, jsonMode = false) {
+  function wait(milliseconds) {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+  }
+
+  async function callGeminiOnce(promptText, jsonMode = false) {
     const proxyResponse = await fetch("/api/gemini", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1036,7 +1042,31 @@ doubled >> Display.`;
       return payload.text?.trim() || null;
     }
     const detail = await proxyResponse?.json().catch(() => ({}));
-    throw new Error(detail?.error || "Gemini先生に接続できませんでした");
+    const error = new Error(detail?.error || "Gemini先生に接続できませんでした");
+    error.status = proxyResponse?.status || 0;
+    error.retryAfter = Number(proxyResponse?.headers.get("retry-after")) || 0;
+    throw error;
+  }
+
+  function callGemini(promptText, jsonMode = false) {
+    const run = async () => {
+      const minimumInterval = 6500;
+      const remaining = minimumInterval - (Date.now() - lastGeminiRequestAt);
+      if (remaining > 0) await wait(remaining);
+      lastGeminiRequestAt = Date.now();
+      try {
+        return await callGeminiOnce(promptText, jsonMode);
+      } catch (error) {
+        if (error.status !== 429) throw error;
+        const retryDelay = Math.max(12000, error.retryAfter * 1000);
+        await wait(retryDelay);
+        lastGeminiRequestAt = Date.now();
+        return callGeminiOnce(promptText, jsonMode);
+      }
+    };
+    const request = geminiRequestQueue.then(run, run);
+    geminiRequestQueue = request.catch(() => null);
+    return request;
   }
 
   function parseJsonText(text) {
