@@ -1,8 +1,6 @@
 {
-  "rewrites": [
-    {
-      "source": "/api/gemini",
-      "destination": "/api/gemini.js"
-    }
-  ]
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": null,
+  "outputDirectory": "."
 }
