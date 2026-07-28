@@ -1,4 +1,10 @@
-const MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
+const CHAT_MODEL =
+  process.env.GEMINI_CHAT_MODEL ||
+  process.env.GEMINI_MODEL ||
+  "gemini-3.5-flash-lite";
+const LESSON_MODEL =
+  process.env.GEMINI_LESSON_MODEL ||
+  "gemini-3.6-flash";
 
 function sendJson(response, status, payload) {
   response.status(status).json(payload);
@@ -23,6 +29,8 @@ export default async function handler(request, response) {
   }
 
   const prompt = String(request.body?.prompt || "").trim();
+  const task = request.body?.task === "lesson" ? "lesson" : "chat";
+  const model = task === "lesson" ? LESSON_MODEL : CHAT_MODEL;
   if (!prompt) {
     sendJson(response, 400, { error: "prompt is required" });
     return;
@@ -41,7 +49,7 @@ export default async function handler(request, response) {
   }
 
   const geminiResponse = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     {
       method: "POST",
       headers: {
