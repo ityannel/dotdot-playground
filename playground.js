@@ -2,12 +2,14 @@
   "use strict";
 
   const STORAGE = {
-    source: "poppop.playground.source.v1",
+    source: "poppop.playground.source.v2",
     theme: "poppop.playground.theme",
     fontSize: "poppop.playground.fontSize",
     lessonIndex: "poppop.playground.lessonIndex.v1",
     lessonProgress: "poppop.playground.lessonProgress.v2",
+    geminiKey: "poppop.playground.geminiKey.v1",
   };
+  const GEMINI_MODEL = "gemini-2.0-flash";
   const FALLBACK_SOURCE = `[1, 2, 3, 4] >> Map(value):
     value * 2.
 .. >> doubled.
@@ -26,6 +28,7 @@ doubled >> Display.`;
       "lessonTitleButton", "nextLessonButton", "lessonBadge", "lessonTitle",
       "lessonGoal", "lessonChat", "robotAvatar", "openLessonButton", "checkLessonButton",
       "hintButton", "showAnswerButton", "lessonQuestionForm", "lessonQuestion",
+      "aiLessonButton", "aiSettingsButton",
       "advanceLessonButton",
       "editor", "editorFallback", "saveStatus", "cursorStatus",
       "characterStatus", "outputPanel", "diagnosticsPanel", "astPanel",
@@ -58,6 +61,7 @@ doubled >> Display.`;
   let hintIndex = 0;
   let completedLessons = new Set();
   let robotMoodTimer = null;
+  let aiLesson = null;
 
   try {
     completedLessons = new Set(
@@ -354,7 +358,7 @@ doubled >> Display.`;
     worker.postMessage({
       type: "run",
       source: getSource(),
-      lessonId: currentSidePanel === "lesson" ? activeLessonId : null,
+      lessonId: currentSidePanel === "lesson" && !aiLesson ? activeLessonId : null,
     });
   }
 
@@ -620,7 +624,7 @@ doubled >> Display.`;
   }
 
   function currentLesson() {
-    return lessons[lessonIndex] ?? null;
+    return aiLesson ?? lessons[lessonIndex] ?? null;
   }
 
   function renderLessonProgress() {
@@ -701,6 +705,7 @@ doubled >> Display.`;
 
   function selectLesson(nextIndex) {
     if (!lessons.length) return;
+    aiLesson = null;
     lessonIndex = Math.min(Math.max(0, nextIndex), lessons.length - 1);
     activeLessonId = null;
     hintIndex = 0;
@@ -763,6 +768,123 @@ doubled >> Display.`;
     }
   }
 
+  function configureGeminiKey() {
+    const current = localStorage.getItem(STORAGE.geminiKey) || "";
+    const next = prompt("Gemini APIキーを入力してください。空欄で保存済みキーを削除します。", current);
+    if (next === null) return false;
+    const trimmed = next.trim();
+    if (trimmed) {
+      localStorage.setItem(STORAGE.geminiKey, trimmed);
+      showToast("Gemini APIキーを保存しました");
+      return true;
+    }
+    localStorage.removeItem(STORAGE.geminiKey);
+    showToast("Gemini APIキーを削除しました");
+    return false;
+  }
+
+  function geminiKey() {
+    return localStorage.getItem(STORAGE.geminiKey) || "";
+  }
+
+  async function callGemini(promptText, jsonMode = false) {
+    const proxyResponse = await fetch("/api/gemini", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: promptText, json: jsonMode }),
+    }).catch(() => null);
+    if (proxyResponse?.ok) {
+      const payload = await proxyResponse.json();
+      return payload.text?.trim() || null;
+    }
+    if (proxyResponse && proxyResponse.status !== 404) {
+      throw new Error(`Gemini proxy error ${proxyResponse.status}`);
+    }
+
+    let key = geminiKey();
+    if (!key) {
+      robotSpeak("Gemini APIキーが必要です。⚙ から設定すると、次回から自動で使えます。");
+      if (!configureGeminiKey()) return null;
+      key = geminiKey();
+    }
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": key,
+        },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: promptText }] }],
+          generationConfig: jsonMode ? { responseMimeType: "application/json" } : undefined,
+        }),
+      },
+    );
+    if (!response.ok) {
+      if ([400, 401, 403].includes(response.status)) {
+        localStorage.removeItem(STORAGE.geminiKey);
+      }
+      throw new Error(`Gemini API error ${response.status}`);
+    }
+    const payload = await response.json();
+    return payload?.candidates?.[0]?.content?.parts
+      ?.map((part) => part.text ?? "")
+      .join("")
+      .trim() || null;
+  }
+
+  function parseJsonText(text) {
+    if (!text) return null;
+    try {
+      return JSON.parse(text);
+    } catch {
+      const match = text.match(/\{[\s\S]*\}/);
+      return match ? JSON.parse(match[0]) : null;
+    }
+  }
+
+  async function createAiLesson() {
+    setRobotMood("thinking");
+    robotSpeak("新しい問題を考えています。少し待ってね。");
+    try {
+      const text = await callGemini(
+        [
+          "あなたはPopPop言語のやさしい先生です。",
+          "初心者向けの短い練習問題を1つ作ってください。",
+          "PopPopは `>>` で値を流し、通常の文は `.`、ブロック全体は `..` で閉じます。",
+          "使えるもの: Display, Map(name):, Filter(name):, Reduce(name):, Check(name): is ... else:, Update(name):, Fork(name):, Range, Sum, Length, Random, Get。",
+          "最終結果は必ず `>> Display.` で表示してください。",
+          "JSONだけを返してください。",
+          '形式: {"title":"短いタイトル","goal":"目標","starter":"未完成コード","solution":"完成コード","hints":["ヒント1","ヒント2"]}',
+        ].join("\n"),
+        true,
+      );
+      const data = parseJsonText(text);
+      if (!data?.starter || !data?.solution || !data?.goal) throw new Error("AIの問題形式を読み取れませんでした");
+      aiLesson = {
+        id: `ai-${Date.now()}`,
+        badge: "AI",
+        title: data.title || "AI問題",
+        goal: data.goal,
+        intro: "Geminiが作ったその場限りの問題です。",
+        starter: data.starter,
+        solution: data.solution,
+        hints: Array.isArray(data.hints) ? data.hints : [],
+      };
+      activeLessonId = aiLesson.id;
+      hintIndex = 0;
+      setSource(aiLesson.starter);
+      renderLesson();
+      clearLessonChat();
+      setRobotMood("happy", 2200);
+      robotSpeak(`${aiLesson.title}\n${aiLesson.goal}\nできたら実行して、質問欄から相談してね。`);
+    } catch (error) {
+      setRobotMood("encourage", 1800);
+      robotSpeak(`AI問題を作れませんでした。\n${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
   function explainLessonError(error) {
     const text = String(error ?? "");
     const localized = localizeError(error);
@@ -776,7 +898,7 @@ doubled >> Display.`;
     return `実行中に問題を見つけました。\n${localized}\n慌てなくて大丈夫。ヒントも使えます。`;
   }
 
-  function answerLessonQuestion(question) {
+  async function answerLessonQuestion(question) {
     const lesson = currentLesson();
     const normalized = question.toLowerCase();
     setRobotMood("thinking", 1400);
@@ -800,7 +922,20 @@ doubled >> Display.`;
     if (/check|分岐/i.test(question)) return "Check は上から is を調べ、最初に一致したブロックを実行します。最後の else は必須です。";
     if (/loop|break/i.test(question)) return "Loop はブロックの最後の値を次の状態として繰り返し、値を Break へ渡すと終了します。";
     if (/終|ドット|\./.test(normalized)) return "通常の文は `.`、Map や Check などのブロック全体は `..` で閉じます。改行そのものには構文上の意味がありません。";
-    return `いい質問です。今の目標は「${lesson.goal}」です。まず結果を予想して実行し、違ったらヒントを一つずつ使ってみよう。`;
+    try {
+      return await callGemini(
+        [
+          "あなたはPopPop Playgroundのロボット君です。日本語で、短く、やさしく答えてください。",
+          "完成コードを丸ごと出すより、次の一手が分かる助言を優先してください。",
+          `現在の目標: ${lesson.goal}`,
+          `現在のコード:\n${getSource()}`,
+          `診断:\n${elements.diagnosticsPanel.textContent}`,
+          `質問: ${question}`,
+        ].join("\n\n"),
+      ) || `今の目標は「${lesson.goal}」です。まず実行結果を見て、違った場所を一つ直してみよう。`;
+    } catch (error) {
+      return `AIアドバイスを呼べませんでした。\n${error instanceof Error ? error.message : String(error)}`;
+    }
   }
 
   function showLessonOverview() {
@@ -922,6 +1057,8 @@ doubled >> Display.`;
     elements.checkLessonButton.addEventListener("click", startRun);
     elements.hintButton.addEventListener("click", showLessonHint);
     elements.showAnswerButton.addEventListener("click", showLessonAnswer);
+    elements.aiLessonButton.addEventListener("click", createAiLesson);
+    elements.aiSettingsButton.addEventListener("click", configureGeminiKey);
     elements.advanceLessonButton.addEventListener("click", advanceLesson);
     elements.lessonQuestionForm.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -929,7 +1066,7 @@ doubled >> Display.`;
       if (!question) return;
       addChatMessage(question, "user");
       elements.lessonQuestion.value = "";
-      robotSpeak(answerLessonQuestion(question));
+      answerLessonQuestion(question).then((answer) => robotSpeak(answer));
     });
     elements.exampleSearch.addEventListener("input", renderExamples);
     elements.referenceSearch.addEventListener("input", renderReferences);

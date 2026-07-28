@@ -67,6 +67,37 @@ python -m http.server 8000
 Then open `http://localhost:8000`. Opening `index.html` directly is not
 supported because browsers block the source requests used by the runtime.
 
+For the AI tutor, deploy the Playground with Vercel and set `GEMINI_API_KEY` in
+the Vercel project environment variables. The browser calls `/api/gemini`; the
+API key stays on the server.
+
+Local AI tutor testing is also available with the bundled Playground server:
+
+```bash
+GEMINI_API_KEY=your-key python poppop_playground_server.py
+```
+
+On Windows PowerShell:
+
+```powershell
+$env:GEMINI_API_KEY = "your-key"
+python poppop_playground_server.py
+```
+
+Then open `http://127.0.0.1:8765`. The browser calls `/api/gemini`; the API key
+stays on the server. If `/api/gemini` is not available, the Playground can still
+ask for a personal browser key and save it locally.
+
+For Vercel, import this GitHub repository, keep the default static deployment
+settings, and add this environment variable:
+
+```text
+GEMINI_API_KEY=your-key
+```
+
+`api/gemini.py` is the Vercel Function used by ロボット君 to generate practice
+problems and advice.
+
 GitHub Pages is rebuilt automatically after relevant files are pushed to
 `main` or `master`. The deployment packages every current `poppop_lang`
 Python module, so newly added interpreter modules are included without editing
