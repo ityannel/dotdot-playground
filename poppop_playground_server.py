@@ -52,9 +52,56 @@ class PlaygroundHandler(SimpleHTTPRequestHandler):
 
             payload: dict[str, object] = {
                 "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                "generationConfig": {"maxOutputTokens": 1200},
+                "generationConfig": {
+                    "maxOutputTokens": 4096 if task == "lesson" else 1200
+                },
             }
-            if json_mode:
+            if task == "lesson":
+                payload["generationConfig"]["thinkingConfig"] = {
+                    "thinkingLevel": "low"
+                }
+                payload["generationConfig"]["responseFormat"] = {
+                    "text": {
+                        "mimeType": "application/json",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "title": {"type": "string"},
+                                "intro": {"type": "string"},
+                                "goal": {"type": "string"},
+                                "starter": {"type": "string"},
+                                "solution": {"type": "string"},
+                                "hints": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                    "minItems": 2,
+                                    "maxItems": 2,
+                                },
+                                "mood": {
+                                    "type": "string",
+                                    "enum": [
+                                        "neutral",
+                                        "happy",
+                                        "thinking",
+                                        "encourage",
+                                        "surprised",
+                                    ],
+                                },
+                            },
+                            "required": [
+                                "title",
+                                "intro",
+                                "goal",
+                                "starter",
+                                "solution",
+                                "hints",
+                                "mood",
+                            ],
+                            "additionalProperties": False,
+                        },
+                    },
+                }
+            elif json_mode:
                 payload["generationConfig"]["responseMimeType"] = "application/json"
 
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
