@@ -78,7 +78,7 @@ doubled >> Display.`;
   let tuningRequests = new Map();
   let tutorWelcomed = localStorage.getItem(STORAGE.tutorWelcomed) === "yes";
   let tutorProfile = { level: "はじめて", goal: "" };
-  let tutorLearning = { lessons: {}, recent: [] };
+  let tutorLearning = { lessons: {}, recent: [], aiCompleted: 0 };
   let tutorProfileRevision = 0;
   let tutorRequestSequence = 0;
   let sourceValidationSequence = 0;
@@ -105,10 +105,11 @@ doubled >> Display.`;
     tutorLearning = {
       lessons: {},
       recent: [],
+      aiCompleted: 0,
       ...JSON.parse(localStorage.getItem(STORAGE.tutorLearning) || "{}"),
     };
   } catch {
-    tutorLearning = { lessons: {}, recent: [] };
+    tutorLearning = { lessons: {}, recent: [], aiCompleted: 0 };
   }
 
   function getSharedSource() {
@@ -698,8 +699,11 @@ doubled >> Display.`;
     const complete = completedLessons.size;
     const total = lessons.length;
     const percent = total ? (complete / total) * 100 : 0;
-    elements.lessonProgressText.textContent = `${complete} / ${total}`;
-    elements.lessonTabProgress.textContent = `${complete}/${total}`;
+    const aiComplete = tutorLearning.aiCompleted || 0;
+    const suffix = aiComplete ? ` + AI ${aiComplete}` : "";
+    elements.lessonProgressText.textContent = `${complete} / ${total}${suffix}`;
+    elements.lessonTabProgress.textContent =
+      complete >= total && aiComplete ? `AI ${aiComplete}` : `${complete}/${total}`;
     elements.lessonProgressBar.style.width = `${percent}%`;
   }
 
@@ -719,17 +723,22 @@ doubled >> Display.`;
       elements.lessonGoal.textContent = "実行環境からレッスンを読み込んでいます。";
       return;
     }
-    elements.lessonBadge.textContent = completedLessons.has(lesson.id) ? "✓" : lesson.badge;
+    elements.lessonBadge.textContent =
+      completedLessons.has(lesson.id) || lesson.passed ? "✓" : lesson.badge;
     elements.lessonTitle.textContent = lesson.title;
     elements.lessonGoal.textContent = lesson.goal;
-    elements.previousLessonButton.disabled = lessonIndex === 0;
-    elements.nextLessonButton.disabled = lessonIndex === lessons.length - 1;
+    elements.previousLessonButton.disabled = aiLesson ? false : lessonIndex === 0;
+    elements.nextLessonButton.disabled = Boolean(aiLesson) || lessonIndex === lessons.length - 1;
     elements.checkLessonButton.disabled =
       !runtimeReady || activeLessonId !== lesson.id || currentSidePanel !== "lesson";
     elements.hintButton.disabled = activeLessonId !== lesson.id;
     elements.showAnswerButton.disabled = activeLessonId !== lesson.id;
-    elements.advanceLessonButton.hidden =
-      !completedLessons.has(lesson.id) || lessonIndex === lessons.length - 1;
+    const canAdvance = completedLessons.has(lesson.id) || lesson.passed;
+    elements.advanceLessonButton.hidden = !canAdvance;
+    elements.advanceLessonButton.textContent =
+      aiLesson || lessonIndex === lessons.length - 1
+        ? "次のAI問題へ →"
+        : "次のレッスンへ →";
   }
 
   function clearLessonChat() {
@@ -815,7 +824,7 @@ doubled >> Display.`;
     tutorProfileRevision += 1;
     tunedLessons.clear();
     tuningRequests.clear();
-    tutorLearning = { lessons: {}, recent: [] };
+    tutorLearning = { lessons: {}, recent: [], aiCompleted: 0 };
     saveTutorLearning();
     tutorWelcomed = true;
     localStorage.setItem(STORAGE.tutorWelcomed, "yes");
@@ -835,7 +844,7 @@ doubled >> Display.`;
     hintIndex = 0;
     lessonIndex = 0;
     tutorProfile = { level: "はじめて", goal: "" };
-    tutorLearning = { lessons: {}, recent: [] };
+    tutorLearning = { lessons: {}, recent: [], aiCompleted: 0 };
     tutorProfileRevision += 1;
     tutorWelcomed = false;
     tutorRequestSequence += 1;
@@ -1226,16 +1235,21 @@ doubled >> Display.`;
       if (requestId !== tutorRequestSequence) return;
       const data = parseJsonText(text);
       const passed = data?.passed === true;
-      if (passed && lessons.some((baseLesson) => baseLesson.id === lesson.id)) {
+      if (passed) {
         recordLearning("success", lesson.id, data?.message || "目標達成");
-        completedLessons.add(lesson.id);
-        localStorage.setItem(
-          STORAGE.lessonProgress,
-          JSON.stringify([...completedLessons]),
-        );
-        elements.advanceLessonButton.hidden = lessonIndex >= lessons.length - 1;
+        if (lessons.some((baseLesson) => baseLesson.id === lesson.id)) {
+          completedLessons.add(lesson.id);
+          localStorage.setItem(
+            STORAGE.lessonProgress,
+            JSON.stringify([...completedLessons]),
+          );
+          prefetchFollowingLesson();
+        } else if (!lesson.passed) {
+          lesson.passed = true;
+          tutorLearning.aiCompleted = (tutorLearning.aiCompleted || 0) + 1;
+          saveTutorLearning();
+        }
         renderLesson();
-        prefetchFollowingLesson();
       } else if (!passed) {
         recordLearning("failure", lesson.id, data?.message || "目標未達成");
       }
@@ -1256,6 +1270,7 @@ doubled >> Display.`;
   }
 
   async function createAiLesson() {
+    elements.advanceLessonButton.hidden = true;
     setRobotMood("thinking");
     setTutorBusy(true);
     try {
@@ -1271,6 +1286,9 @@ doubled >> Display.`;
           "最終結果は必ず `>> Display.` で表示してください。",
           `学習者の経験は「${tutorProfile.level}」です。難しさと説明量を合わせてください。`,
           `作りたいものは「${tutorProfile.goal || "まだ決めていない"}」です。できるだけ近い題材にしてください。`,
+          `これまでの学習記録: ${learningSummary()}`,
+          `今回の難易度方針: ${nextDifficultyGuidance()}`,
+          `基礎8問の後に解いたAI問題数: ${tutorLearning.aiCompleted || 0}`,
           "JSONだけを返してください。",
           '形式: {"title":"短いタイトル","goal":"目標","starter":"未完成コード","solution":"完成コード","hints":["ヒント1","ヒント2"]}',
         ].join("\n"),
@@ -1295,7 +1313,8 @@ doubled >> Display.`;
       aiLesson = {
         id: `ai-${Date.now()}`,
         dynamic: true,
-        badge: "AI",
+        badge: `AI ${Number(tutorLearning.aiCompleted || 0) + 1}`,
+        passed: false,
         title: data.title || "AI問題",
         goal: data.goal,
         intro: "Geminiが作ったその場限りの問題です。",
@@ -1315,6 +1334,7 @@ doubled >> Display.`;
     } catch (error) {
       setRobotMood("encourage", 1800);
       robotSpeak("今は新しい問題を作れなかったよ。少し時間をおいて、もう一度試してね。");
+      renderLesson();
     } finally {
       setTutorBusy(false);
     }
@@ -1455,8 +1475,22 @@ doubled >> Display.`;
   }
 
   function advanceLesson() {
-    if (lessonIndex >= lessons.length - 1) return;
+    if (aiLesson || lessonIndex >= lessons.length - 1) {
+      void createAiLesson();
+      return;
+    }
     selectLesson(lessonIndex + 1);
+  }
+
+  function previousLesson() {
+    if (aiLesson) {
+      aiLesson = null;
+      activeLessonId = null;
+      renderLesson();
+      openCurrentLesson({ introduction: true });
+      return;
+    }
+    selectLesson(lessonIndex - 1);
   }
 
   function formatSource() {
@@ -1554,8 +1588,7 @@ doubled >> Display.`;
     elements.examplesTab.addEventListener("click", () => switchSidePanel("examples"));
     elements.referenceTab.addEventListener("click", () => switchSidePanel("reference"));
     elements.lessonTab.addEventListener("click", () => switchSidePanel("lesson"));
-    elements.previousLessonButton.addEventListener("click", () =>
-      selectLesson(lessonIndex - 1));
+    elements.previousLessonButton.addEventListener("click", previousLesson);
     elements.nextLessonButton.addEventListener("click", () =>
       selectLesson(lessonIndex + 1));
     elements.lessonTitleButton.addEventListener("click", showLessonOverview);
