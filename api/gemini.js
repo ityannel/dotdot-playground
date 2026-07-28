@@ -1,4 +1,4 @@
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 
 function sendJson(response, status, payload) {
   response.status(status).json(payload);
@@ -27,12 +27,17 @@ export default async function handler(request, response) {
     sendJson(response, 400, { error: "prompt is required" });
     return;
   }
+  if (prompt.length > 16000) {
+    sendJson(response, 413, { error: "prompt is too long" });
+    return;
+  }
 
   const payload = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: { maxOutputTokens: 1200 },
   };
   if (request.body?.json) {
-    payload.generationConfig = { responseMimeType: "application/json" };
+    payload.generationConfig.responseMimeType = "application/json";
   }
 
   const geminiResponse = await fetch(

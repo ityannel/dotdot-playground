@@ -15,7 +15,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
 
 
 class PlaygroundHandler(SimpleHTTPRequestHandler):
@@ -40,12 +40,16 @@ class PlaygroundHandler(SimpleHTTPRequestHandler):
             if not prompt:
                 self._send_json(400, {"error": "prompt is required"})
                 return
+            if len(prompt) > 16000:
+                self._send_json(413, {"error": "prompt is too long"})
+                return
 
             payload: dict[str, object] = {
                 "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                "generationConfig": {"maxOutputTokens": 1200},
             }
             if json_mode:
-                payload["generationConfig"] = {"responseMimeType": "application/json"}
+                payload["generationConfig"]["responseMimeType"] = "application/json"
 
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
             gemini_request = urllib.request.Request(
@@ -87,7 +91,7 @@ def main() -> None:
     server = ThreadingHTTPServer(("127.0.0.1", port), PlaygroundHandler)
     print(f"PopPop Playground: http://127.0.0.1:{port}")
     if not os.environ.get("GEMINI_API_KEY"):
-        print("GEMINI_API_KEY is not set. AI features will ask for a browser key.")
+        print("GEMINI_API_KEY is not set. Gemini tutor replies will use fallbacks.")
     server.serve_forever()
 
 

@@ -256,6 +256,7 @@ body.lesson-open .workspace {
 .reference-card .category { float: right; color: var(--accent); font-size: 9px; }
 
 .lesson-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -274,6 +275,16 @@ body.lesson-open .workspace {
 .tutor-header > div:last-child { display: grid; gap: 3px; }
 .tutor-header strong { font-size: 13px; }
 
+.tutor-session {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tutor-session[hidden] { display: none; }
+
 .tutor-online {
   color: var(--muted);
   font-size: 10px;
@@ -287,6 +298,133 @@ body.lesson-open .workspace {
   border-radius: 50%;
   background: var(--good);
 }
+
+.tutor-online.busy i {
+  background: #ffd45d;
+  animation: tutor-pulse .7s ease-in-out infinite alternate;
+}
+
+@keyframes tutor-pulse {
+  to { transform: scale(1.45); opacity: .55; }
+}
+
+.tutor-welcome {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: center;
+  padding: 18px 4px 8px;
+  text-align: center;
+}
+
+.tutor-welcome[hidden] { display: none; }
+
+.tutor-welcome::before,
+.tutor-welcome::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(2px);
+}
+
+.tutor-welcome::before {
+  width: 180px;
+  height: 180px;
+  top: 8%;
+  left: 50%;
+  background: rgb(51 119 255 / 16%);
+  transform: translateX(-50%);
+}
+
+.tutor-welcome::after {
+  width: 130px;
+  height: 130px;
+  right: -55px;
+  bottom: 9%;
+  background: rgb(255 82 111 / 12%);
+}
+
+.tutor-welcome h2 {
+  margin: 82px 0 8px;
+  font-size: clamp(25px, 2.4vw, 34px);
+  line-height: 1.05;
+  letter-spacing: -.04em;
+}
+
+.tutor-welcome p {
+  max-width: 230px;
+  margin: 0 auto 22px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.tutor-welcome button {
+  display: flex;
+  width: min(100%, 248px);
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 auto;
+  padding: 15px 17px;
+  border: 0;
+  border-radius: 15px;
+  background: linear-gradient(105deg, var(--accent), var(--accent-3) 58%, var(--accent-2));
+  box-shadow: 0 9px 0 color-mix(in srgb, var(--accent) 38%, #061126), 0 18px 34px rgb(30 94 235 / 24%);
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 900;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.tutor-welcome button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 11px 0 color-mix(in srgb, var(--accent) 38%, #061126), 0 21px 38px rgb(30 94 235 / 28%);
+}
+
+.tutor-welcome button:active {
+  transform: translateY(5px);
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 38%, #061126);
+}
+
+.tutor-welcome button span { font-size: 20px; }
+
+.tutor-welcome small {
+  margin-top: 17px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.welcome-spark {
+  position: absolute;
+  color: var(--accent-2);
+  font-weight: 900;
+  animation: welcome-float 2.2s ease-in-out infinite alternate;
+}
+
+.spark-one { top: 17%; left: 18%; font-size: 21px; }
+.spark-two { top: 29%; right: 18%; color: var(--accent-3); font-size: 8px; animation-delay: -.8s; }
+
+@keyframes welcome-float {
+  to { transform: translateY(-8px) rotate(18deg); }
+}
+
+.lesson-panel.welcome-mode .tutor-header {
+  position: absolute;
+  z-index: 2;
+  top: 22%;
+  left: 50%;
+  flex-direction: column;
+  transform: translate(-50%, -50%);
+}
+
+.lesson-panel.welcome-mode .tutor-header > div:last-child { text-align: center; }
+.lesson-panel.welcome-mode .tutor-header strong { font-size: 14px; }
+.lesson-panel.welcome-mode .robot-avatar { transform: scale(1.75); margin-bottom: 18px; }
 
 .robot-avatar {
   position: relative;
@@ -330,6 +468,60 @@ body.lesson-open .workspace {
   animation: robot-nod .38s ease-in-out 2;
 }
 
+.robot-avatar.sad {
+  animation: robot-sigh .7s ease-in-out 1;
+}
+
+.robot-avatar.sad .robot-eye {
+  top: 14px;
+  height: 3px;
+  border-radius: 50%;
+  transform: rotate(10deg);
+  animation: none;
+}
+
+.robot-avatar.sad .robot-eye.right { transform: rotate(-10deg); }
+
+.robot-avatar.sad .robot-mouth {
+  bottom: 4px;
+  height: 8px;
+  border-top: 2px solid #071b48;
+  border-bottom: 0;
+}
+
+.robot-avatar.sad::after {
+  content: "";
+  position: absolute;
+  top: 20px;
+  right: 7px;
+  width: 5px;
+  height: 8px;
+  border-radius: 60% 40% 55% 55%;
+  background: #d9f4ff;
+  box-shadow: 0 1px 0 rgb(7 27 72 / 18%);
+  animation: robot-tear .7s ease-in 1;
+}
+
+.robot-avatar.surprised {
+  animation: robot-pop .38s ease-out 2;
+}
+
+.robot-avatar.surprised .robot-eye {
+  width: 8px;
+  height: 9px;
+  top: 10px;
+  animation: none;
+}
+
+.robot-avatar.surprised .robot-mouth {
+  left: 19px;
+  bottom: 4px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #071b48;
+  border-radius: 50%;
+}
+
 @keyframes robot-celebrate {
   50% { transform: translateY(-5px) rotate(3deg); }
 }
@@ -340,6 +532,18 @@ body.lesson-open .workspace {
 
 @keyframes robot-nod {
   50% { transform: translateY(3px); }
+}
+
+@keyframes robot-sigh {
+  50% { transform: translateY(3px) rotate(-2deg); }
+}
+
+@keyframes robot-tear {
+  from { opacity: 0; transform: translateY(-3px) scale(.65); }
+}
+
+@keyframes robot-pop {
+  50% { transform: translateY(-4px) scale(1.06); }
 }
 
 .robot-antenna {
@@ -558,12 +762,19 @@ body.lesson-open .workspace {
 
 .lesson-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
 }
 
 .lesson-actions .button { justify-content: center; }
-.lesson-actions .lesson-check { border-color: rgb(97 214 144 / 42%); color: var(--good); }
+.lesson-actions .lesson-check {
+  grid-column: 1 / -1;
+  padding-block: 10px;
+  border-color: rgb(97 214 144 / 42%);
+  background: rgb(97 214 144 / 9%);
+  color: var(--good);
+  font-weight: 900;
+}
 
 .advance-lesson {
   display: flex;

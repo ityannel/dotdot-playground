@@ -108,50 +108,61 @@
           </div>
           <div>
             <strong>ロボット君</strong>
-            <span class="tutor-online"><i></i> レッスンできます</span>
+            <span id="tutorStatus" class="tutor-online"><i></i> Gemini先生</span>
           </div>
         </div>
 
-        <div class="lesson-progress" aria-label="レッスン進捗">
-          <div class="lesson-progress-label">
-            <span>進捗</span>
-            <strong id="lessonProgressText">0 / 0</strong>
-          </div>
-          <div class="progress-track">
-            <span id="lessonProgressBar"></span>
-          </div>
-        </div>
-
-        <div class="lesson-picker">
-          <button id="previousLessonButton" class="lesson-arrow" type="button" aria-label="前のレッスン">← 戻る</button>
-          <button id="lessonTitleButton" class="lesson-title-button" type="button">
-            <span id="lessonBadge">—</span>
-            <strong id="lessonTitle">準備中…</strong>
+        <section id="tutorWelcome" class="tutor-welcome" aria-labelledby="tutorWelcomeTitle">
+          <span class="welcome-spark spark-one" aria-hidden="true">✦</span>
+          <span class="welcome-spark spark-two" aria-hidden="true">●</span>
+          <h2 id="tutorWelcomeTitle">いっしょに<br>PopPopしよう。</h2>
+          <p>コードを書いて、動かして、困ったらすぐ聞けるよ。</p>
+          <button id="welcomeTutorButton" type="button">
+            ロボット君と始める <span aria-hidden="true">→</span>
           </button>
-          <button id="nextLessonButton" class="lesson-arrow" type="button" aria-label="次のレッスン">次 →</button>
+          <small>次からは、すぐレッスンを開きます</small>
+        </section>
+
+        <div id="tutorSession" class="tutor-session" hidden>
+          <div class="lesson-progress" aria-label="レッスン進捗">
+            <div class="lesson-progress-label">
+              <span>進捗</span>
+              <strong id="lessonProgressText">0 / 0</strong>
+            </div>
+            <div class="progress-track">
+              <span id="lessonProgressBar"></span>
+            </div>
+          </div>
+
+          <div class="lesson-picker">
+            <button id="previousLessonButton" class="lesson-arrow" type="button" aria-label="前のレッスン">←</button>
+            <button id="lessonTitleButton" class="lesson-title-button" type="button">
+              <span id="lessonBadge">—</span>
+              <strong id="lessonTitle">準備中…</strong>
+            </button>
+            <button id="nextLessonButton" class="lesson-arrow" type="button" aria-label="次のレッスン">→</button>
+          </div>
+
+          <div class="lesson-goal"><span aria-hidden="true">◎</span><span id="lessonGoal">読み込み中…</span></div>
+
+          <div id="lessonChat" class="lesson-chat" aria-live="polite" aria-label="ロボット君との会話"></div>
+
+          <div class="lesson-actions">
+            <button id="checkLessonButton" class="button lesson-check" type="button" disabled><span aria-hidden="true">✓</span> 答え合わせ</button>
+            <button id="hintButton" class="button" type="button" disabled aria-label="ヒント"><span aria-hidden="true">💡</span> ヒント</button>
+            <button id="showAnswerButton" class="button" type="button" disabled aria-label="答えを見る"><span aria-hidden="true">👀</span> 答え</button>
+            <button id="aiLessonButton" class="button" type="button"><span aria-hidden="true">✦</span> おまかせ問題</button>
+          </div>
+          <button id="advanceLessonButton" class="advance-lesson" type="button" hidden>
+            次のレッスンへ <span aria-hidden="true">→</span>
+          </button>
+
+          <form id="lessonQuestionForm" class="lesson-question">
+            <label class="sr-only" for="lessonQuestion">ロボット君に質問</label>
+            <input id="lessonQuestion" placeholder="ここでロボット君に聞けます" autocomplete="off">
+            <button type="submit" aria-label="質問を送信">➤</button>
+          </form>
         </div>
-
-        <div class="lesson-goal"><span aria-hidden="true">◎</span><span id="lessonGoal">読み込み中…</span></div>
-
-        <div id="lessonChat" class="lesson-chat" aria-live="polite" aria-label="ロボット君との会話"></div>
-
-        <div class="lesson-actions">
-          <button id="openLessonButton" class="button primary" type="button"><span aria-hidden="true">▶</span> はじめる</button>
-          <button id="checkLessonButton" class="button lesson-check" type="button" disabled><span aria-hidden="true">✓</span> 答え合わせ</button>
-          <button id="hintButton" class="button" type="button" disabled><span aria-hidden="true">💡</span> ヒント</button>
-          <button id="showAnswerButton" class="button" type="button" disabled><span aria-hidden="true">👀</span> 答え</button>
-          <button id="aiLessonButton" class="button" type="button"><span aria-hidden="true">✦</span> AI問題</button>
-          <button id="aiSettingsButton" class="button" type="button" aria-label="Gemini APIキーを設定"><span aria-hidden="true">⚙</span></button>
-        </div>
-        <button id="advanceLessonButton" class="advance-lesson" type="button" hidden>
-          次のレッスンへ <span aria-hidden="true">→</span>
-        </button>
-
-        <form id="lessonQuestionForm" class="lesson-question">
-          <label class="sr-only" for="lessonQuestion">ロボット君に質問</label>
-          <input id="lessonQuestion" placeholder="ロボット君に質問…" autocomplete="off">
-          <button type="submit" aria-label="質問を送信">➤</button>
-        </form>
       </section>
     </aside>
 
