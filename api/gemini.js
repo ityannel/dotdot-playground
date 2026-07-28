@@ -1,4 +1,4 @@
-const MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 
 function sendJson(response, status, payload) {
   response.status(status).json(payload);
@@ -54,6 +54,8 @@ export default async function handler(request, response) {
 
   const geminiPayload = await geminiResponse.json().catch(() => ({}));
   if (!geminiResponse.ok) {
+    const retryAfter = geminiResponse.headers.get("retry-after");
+    if (retryAfter) response.setHeader("Retry-After", retryAfter);
     sendJson(response, geminiResponse.status, {
       error: geminiPayload.error?.message || "Gemini API request failed",
     });
