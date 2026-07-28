@@ -38,7 +38,8 @@ doubled >> Display.`;
       "lessonTitleButton", "nextLessonButton", "lessonBadge", "lessonTitle",
       "lessonGoal", "lessonChat", "robotAvatar", "tutorStatus",
       "tutorWelcome", "tutorSession", "welcomeIntro", "welcomeTutorButton",
-      "tutorProfileForm", "tutorGoal", "tutorThinking", "lessonTuning", "resetLessonButton",
+      "tutorProfileForm", "tutorGoal", "tutorAge", "tutorGender", "tutorLocation",
+      "tutorOccupation", "tutorThinking", "lessonTuning", "resetLessonButton",
       "checkLessonButton",
       "hintButton", "showAnswerButton", "lessonQuestionForm", "lessonQuestion",
       "aiLessonButton", "advanceLessonButton",
@@ -77,8 +78,15 @@ doubled >> Display.`;
   let tunedLessons = new Map();
   let tuningRequests = new Map();
   let tutorWelcomed = localStorage.getItem(STORAGE.tutorWelcomed) === "yes";
-  let tutorProfile = { level: "はじめて", goal: "" };
-  let tutorLearning = { lessons: {}, recent: [], aiCompleted: 0 };
+  let tutorProfile = {
+    level: "はじめて",
+    goal: "",
+    age: "",
+    gender: "",
+    location: "",
+    occupation: "",
+  };
+  let tutorLearning = { lessons: {}, recent: [], conversation: [], aiCompleted: 0 };
   let tutorProfileRevision = 0;
   let tutorRequestSequence = 0;
   let sourceValidationSequence = 0;
@@ -101,18 +109,27 @@ doubled >> Display.`;
       ...JSON.parse(localStorage.getItem(STORAGE.tutorProfile) || "{}"),
     };
   } catch {
-    tutorProfile = { level: "はじめて", goal: "" };
+    tutorProfile = {
+      level: "はじめて",
+      goal: "",
+      age: "",
+      gender: "",
+      location: "",
+      occupation: "",
+    };
   }
   try {
     tutorLearning = {
       lessons: {},
       recent: [],
+      conversation: [],
       aiCompleted: 0,
       ...JSON.parse(localStorage.getItem(STORAGE.tutorLearning) || "{}"),
     };
   } catch {
-    tutorLearning = { lessons: {}, recent: [], aiCompleted: 0 };
+    tutorLearning = { lessons: {}, recent: [], conversation: [], aiCompleted: 0 };
   }
+  if (!Array.isArray(tutorLearning.conversation)) tutorLearning.conversation = [];
 
   function getSharedSource() {
     if (!location.hash.startsWith("#code=")) return null;
@@ -762,23 +779,62 @@ doubled >> Display.`;
   }
 
   function recentTutorConversation() {
-    return [...elements.lessonChat.querySelectorAll(".chat-message")]
-      .slice(-6)
-      .map((message) => {
-        const role = message.classList.contains("user") ? "学習者" : "ロボット君";
-        return `${role}: ${message.querySelector(".chat-bubble")?.textContent || ""}`;
+    return (tutorLearning.conversation || [])
+      .slice(-10)
+      .map((entry) => {
+        const role = entry.sender === "user" ? "学習者" : "ロボット君";
+        const lesson = entry.lessonTitle ? `（${entry.lessonTitle}）` : "";
+        return `${role}${lesson}: ${entry.text}`;
       })
       .join("\n");
   }
 
-  function addChatMessage(text, sender = "robot", style = "") {
+  function drawChatMessage(entry) {
     const message = document.createElement("div");
-    message.className = `chat-message ${sender} ${style}`.trim();
+    message.className = `chat-message ${entry.sender} ${entry.style || ""}`.trim();
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble";
-    bubble.textContent = text;
+    const current = currentLesson();
+    if (
+      entry.lessonTitle &&
+      entry.lessonId &&
+      current?.id &&
+      entry.lessonId !== current.id
+    ) {
+      const context = document.createElement("span");
+      context.className = "chat-context";
+      context.textContent = `前の問題 · ${entry.lessonTitle}`;
+      bubble.appendChild(context);
+    }
+    bubble.append(document.createTextNode(entry.text));
     message.appendChild(bubble);
     elements.lessonChat.appendChild(message);
+  }
+
+  function renderTutorConversation() {
+    clearLessonChat();
+    (tutorLearning.conversation || []).slice(-16).forEach(drawChatMessage);
+    elements.lessonChat.scrollTop = elements.lessonChat.scrollHeight;
+  }
+
+  function addChatMessage(text, sender = "robot", style = "", persist = true) {
+    const lesson = currentLesson();
+    const entry = {
+      sender,
+      style,
+      text: String(text),
+      lessonId: lesson?.id || "",
+      lessonTitle: lesson?.title || "",
+      at: Date.now(),
+    };
+    if (persist) {
+      tutorLearning.conversation = [
+        ...(tutorLearning.conversation || []),
+        entry,
+      ].slice(-40);
+      saveTutorLearning();
+    }
+    drawChatMessage(entry);
     elements.lessonChat.scrollTop = elements.lessonChat.scrollHeight;
   }
 
@@ -812,6 +868,26 @@ doubled >> Display.`;
     elements.tutorSession.setAttribute("aria-busy", String(busy));
   }
 
+  function learnerProfileSummary() {
+    const optional = [
+      ["年齢", tutorProfile.age],
+      ["性別", tutorProfile.gender],
+      ["場所", tutorProfile.location],
+      ["職業", tutorProfile.occupation],
+    ]
+      .filter(([, value]) => value)
+      .map(([label, value]) => `${label}: ${value}`)
+      .join("、");
+    return [
+      `学習者の経験: ${tutorProfile.level}`,
+      `学習者が作りたいもの: ${tutorProfile.goal || "まだ決めていない"}`,
+      optional ? `学習者が任意で共有したプロフィール: ${optional}` : "",
+      optional
+        ? "任意プロフィールは題材・語彙・説明量の調整にだけ使い、決めつけや固定観念に使わないでください。"
+        : "",
+    ].filter(Boolean).join("\n");
+  }
+
   function selectLesson(nextIndex) {
     if (!lessons.length) return;
     aiLesson = null;
@@ -828,6 +904,19 @@ doubled >> Display.`;
     elements.tutorProfileForm.hidden = false;
     elements.lessonPanel.classList.add("profile-mode");
     elements.tutorGoal.value = tutorProfile.goal;
+    elements.tutorAge.value = tutorProfile.age || "";
+    elements.tutorGender.value = tutorProfile.gender || "";
+    elements.tutorLocation.value = tutorProfile.location || "";
+    elements.tutorOccupation.value = tutorProfile.occupation || "";
+    const optionalProfile = elements.tutorProfileForm.querySelector(".profile-optional");
+    if (optionalProfile) {
+      optionalProfile.open = Boolean(
+        tutorProfile.age ||
+        tutorProfile.gender ||
+        tutorProfile.location ||
+        tutorProfile.occupation
+      );
+    }
     document.querySelectorAll('input[name="tutorLevel"]').forEach((input) => {
       input.checked = input.value === tutorProfile.level;
     });
@@ -840,12 +929,16 @@ doubled >> Display.`;
     tutorProfile = {
       level: selectedLevel?.value || "はじめて",
       goal: elements.tutorGoal.value.trim(),
+      age: elements.tutorAge.value,
+      gender: elements.tutorGender.value,
+      location: elements.tutorLocation.value,
+      occupation: elements.tutorOccupation.value,
     };
     localStorage.setItem(STORAGE.tutorProfile, JSON.stringify(tutorProfile));
     tutorProfileRevision += 1;
     tunedLessons.clear();
     tuningRequests.clear();
-    tutorLearning = { lessons: {}, recent: [], aiCompleted: 0 };
+    tutorLearning = { lessons: {}, recent: [], conversation: [], aiCompleted: 0 };
     saveTutorLearning();
     tutorWelcomed = true;
     localStorage.setItem(STORAGE.tutorWelcomed, "yes");
@@ -864,8 +957,15 @@ doubled >> Display.`;
     activeLessonId = null;
     hintIndex = 0;
     lessonIndex = 0;
-    tutorProfile = { level: "はじめて", goal: "" };
-    tutorLearning = { lessons: {}, recent: [], aiCompleted: 0 };
+    tutorProfile = {
+      level: "はじめて",
+      goal: "",
+      age: "",
+      gender: "",
+      location: "",
+      occupation: "",
+    };
+    tutorLearning = { lessons: {}, recent: [], conversation: [], aiCompleted: 0 };
     tutorProfileRevision += 1;
     tutorWelcomed = false;
     tutorRequestSequence += 1;
@@ -894,7 +994,7 @@ doubled >> Display.`;
     setRobotMood("neutral");
     setSource(lesson.starter);
     renderLesson();
-    clearLessonChat();
+    renderTutorConversation();
     if (introduction) {
       const baseLesson = lessons[lessonIndex];
       const cachedTuning = baseLesson ? tunedLessons.get(baseLesson.id) : null;
@@ -999,9 +1099,9 @@ doubled >> Display.`;
           "JSONだけを返してください。",
           '形式: {"title":"題名","intro":"導入","goal":"目標","starter":"未完成コード","solution":"完成コード","hints":["ヒント1","ヒント2"],"mood":"neutral"}',
           "moodは neutral, happy, thinking, encourage, surprised のいずれかです。",
-          `学習者の経験: ${tutorProfile.level}`,
-          `学習者が作りたいもの: ${tutorProfile.goal || "まだ決めていない"}`,
+          learnerProfileSummary(),
           `これまでの学習記録: ${learningSummary()}`,
+          `これまでの会話:\n${recentTutorConversation() || "なし"}`,
           `今回の難易度方針: ${nextDifficultyGuidance()}`,
           `元の題名: ${baseLesson.title}`,
           `元の導入: ${baseLesson.intro}`,
@@ -1225,8 +1325,7 @@ doubled >> Display.`;
           "JSONだけを返してください。",
           '形式: {"message":"画面に表示する発言","mood":"表情"}',
           `出来事: ${event}`,
-          `学習者の経験: ${tutorProfile.level}`,
-          `学習者が作りたいもの: ${tutorProfile.goal || "まだ決めていない"}`,
+          learnerProfileSummary(),
           `これまでの学習記録: ${learningSummary()}`,
           `レッスン: ${lesson?.title || "なし"}`,
           `目標: ${lesson?.goal || "なし"}`,
@@ -1334,9 +1433,9 @@ doubled >> Display.`;
           "Filterの形:\n[1, 2, 3, 4] >> Filter(value):\n    value % 2 == 0.\n.. >> result.\nresult >> Display.",
           "Reduceの形:\n[1, 2, 3] >> Reduce(values):\n    values[0] + values[1].\n.. >> result.\nresult >> Display.",
           "二段階集計の形:\n[120, 80, 250] >> Filter(price):\n    price >= 100.\n.. >> selected.\nselected >> Sum >> total.\ntotal >> Display.",
-          `学習者の経験は「${tutorProfile.level}」です。難しさと説明量を合わせてください。`,
-          `作りたいものは「${tutorProfile.goal || "まだ決めていない"}」です。できるだけ近い題材にしてください。`,
+          learnerProfileSummary(),
           `これまでの学習記録: ${learningSummary()}`,
+          `これまでの会話:\n${recentTutorConversation() || "なし"}`,
           `今回の難易度方針: ${nextDifficultyGuidance()}`,
           `基礎8問の後に解いたAI問題数: ${tutorLearning.aiCompleted || 0}`,
           repairNote
@@ -1445,7 +1544,7 @@ doubled >> Display.`;
       hintIndex = 0;
       setSource(aiLesson.starter);
       renderLesson();
-      clearLessonChat();
+      renderTutorConversation();
       await askRobot("ai_lesson_created", {
         extra: [
           `あなたが作った新しい問題の目標: ${aiLesson.goal}`,
@@ -1562,8 +1661,7 @@ doubled >> Display.`;
           "JSONだけを返してください。",
           '形式: {"message":"回答","mood":"neutral"}',
           "moodは neutral, happy, thinking, encourage, sad, surprised のいずれかです。",
-          `学習者の経験: ${tutorProfile.level}`,
-          `学習者が作りたいもの: ${tutorProfile.goal || "まだ決めていない"}`,
+          learnerProfileSummary(),
           `現在の目標: ${lesson.goal}`,
           `現在のコード:\n${getSource()}`,
           `診断:\n${elements.diagnosticsPanel.textContent}`,
