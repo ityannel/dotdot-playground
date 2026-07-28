@@ -2,17 +2,28 @@
   "use strict";
 
   const STORAGE = {
-    source: "poppop.playground.source.v1",
+    source: "poppop.playground.source.v2",
     theme: "poppop.playground.theme",
     fontSize: "poppop.playground.fontSize",
     lessonIndex: "poppop.playground.lessonIndex.v1",
     lessonProgress: "poppop.playground.lessonProgress.v2",
+    tutorWelcomed: "poppop.playground.tutorWelcomed.v2",
+    tutorProfile: "poppop.playground.tutorProfile.v1",
   };
   const FALLBACK_SOURCE = `[1, 2, 3, 4] >> Map(value):
     value * 2.
 .. >> doubled.
 
 doubled >> Display.`;
+  const LESSON_FEATURES = {
+    map: "Map",
+    filter: "Filter",
+    reduce: "Reduce",
+    update: "Update",
+    check: "Check",
+    function: "new",
+    loop: "Loop",
+  };
 
   const elements = Object.fromEntries(
     [
@@ -24,9 +35,12 @@ doubled >> Display.`;
       "exampleSearch", "referenceSearch", "exampleList", "referenceList",
       "lessonProgressText", "lessonProgressBar", "previousLessonButton",
       "lessonTitleButton", "nextLessonButton", "lessonBadge", "lessonTitle",
-      "lessonGoal", "lessonChat", "robotAvatar", "openLessonButton", "checkLessonButton",
+      "lessonGoal", "lessonChat", "robotAvatar", "tutorStatus",
+      "tutorWelcome", "tutorSession", "welcomeIntro", "welcomeTutorButton",
+      "tutorProfileForm", "tutorGoal", "tutorThinking", "resetLessonButton",
+      "checkLessonButton",
       "hintButton", "showAnswerButton", "lessonQuestionForm", "lessonQuestion",
-      "advanceLessonButton",
+      "aiLessonButton", "advanceLessonButton",
       "editor", "editorFallback", "saveStatus", "cursorStatus",
       "characterStatus", "outputPanel", "diagnosticsPanel", "astPanel",
       "diagnosticCount", "copyResultButton", "resultBody", "terminalInputForm",
@@ -58,6 +72,11 @@ doubled >> Display.`;
   let hintIndex = 0;
   let completedLessons = new Set();
   let robotMoodTimer = null;
+  let aiLesson = null;
+  let tunedLessons = new Map();
+  let tutorWelcomed = localStorage.getItem(STORAGE.tutorWelcomed) === "yes";
+  let tutorProfile = { level: "はじめて", goal: "" };
+  let tutorRequestSequence = 0;
 
   try {
     completedLessons = new Set(
@@ -65,6 +84,14 @@ doubled >> Display.`;
     );
   } catch {
     completedLessons = new Set();
+  }
+  try {
+    tutorProfile = {
+      ...tutorProfile,
+      ...JSON.parse(localStorage.getItem(STORAGE.tutorProfile) || "{}"),
+    };
+  } catch {
+    tutorProfile = { level: "はじめて", goal: "" };
   }
 
   function getSharedSource() {
@@ -303,12 +330,22 @@ doubled >> Display.`;
       if (message.ok) {
         elements.runState.textContent = "完了";
         if (message.lesson) handleLessonResult(message.lesson);
+        else if (
+          currentLesson()?.dynamic &&
+          activeLessonId === currentLesson()?.id &&
+          currentSidePanel === "lesson"
+        ) {
+          evaluateAiLesson(message.result);
+        }
       } else {
         appendOutput(localizeError(message.error), true);
         elements.runState.textContent = "エラー";
         selectResultTab("diagnostics");
         if (activeLessonId && currentSidePanel === "lesson") {
-          robotSpeak(explainLessonError(message.error));
+          askRobot("runtime_error", {
+            extra: `実行エラー:\n${localizeError(message.error)}`,
+            fallback: explainLessonError(message.error),
+          });
         }
       }
       elements.runTime.textContent = `${message.elapsedMs ?? 0} ms`;
@@ -354,7 +391,10 @@ doubled >> Display.`;
     worker.postMessage({
       type: "run",
       source: getSource(),
-      lessonId: currentSidePanel === "lesson" ? activeLessonId : null,
+      lessonId:
+        currentSidePanel === "lesson" && !currentLesson()?.dynamic
+          ? activeLessonId
+          : null,
     });
   }
 
@@ -614,13 +654,17 @@ doubled >> Display.`;
     document.body.classList.toggle("lesson-open", panel === "lesson");
     elements.checkLessonButton.disabled =
       !runtimeReady || !activeLessonId || panel !== "lesson";
-    if (panel === "lesson" && lessons.length && !elements.lessonChat.children.length) {
-      introduceCurrentLesson();
+    if (panel === "lesson") {
+      renderTutorShell();
+      if (tutorWelcomed && lessons.length && !activeLessonId) {
+        openCurrentLesson({ introduction: true });
+      }
     }
   }
 
   function currentLesson() {
-    return lessons[lessonIndex] ?? null;
+    const baseLesson = lessons[lessonIndex] ?? null;
+    return aiLesson ?? (baseLesson ? tunedLessons.get(baseLesson.id) : null) ?? baseLesson;
   }
 
   function renderLessonProgress() {
@@ -632,13 +676,20 @@ doubled >> Display.`;
     elements.lessonProgressBar.style.width = `${percent}%`;
   }
 
+  function renderTutorShell() {
+    elements.lessonPanel.classList.toggle("welcome-mode", !tutorWelcomed);
+    if (tutorWelcomed) elements.lessonPanel.classList.remove("profile-mode");
+    elements.tutorWelcome.hidden = tutorWelcomed;
+    elements.tutorSession.hidden = !tutorWelcomed;
+  }
+
   function renderLesson() {
     const lesson = currentLesson();
+    renderTutorShell();
     renderLessonProgress();
     if (!lesson) {
       elements.lessonTitle.textContent = "準備中…";
       elements.lessonGoal.textContent = "実行環境からレッスンを読み込んでいます。";
-      elements.openLessonButton.disabled = true;
       return;
     }
     elements.lessonBadge.textContent = completedLessons.has(lesson.id) ? "✓" : lesson.badge;
@@ -646,7 +697,6 @@ doubled >> Display.`;
     elements.lessonGoal.textContent = lesson.goal;
     elements.previousLessonButton.disabled = lessonIndex === 0;
     elements.nextLessonButton.disabled = lessonIndex === lessons.length - 1;
-    elements.openLessonButton.disabled = false;
     elements.checkLessonButton.disabled =
       !runtimeReady || activeLessonId !== lesson.id || currentSidePanel !== "lesson";
     elements.hintButton.disabled = activeLessonId !== lesson.id;
@@ -659,15 +709,19 @@ doubled >> Display.`;
     elements.lessonChat.textContent = "";
   }
 
+  function recentTutorConversation() {
+    return [...elements.lessonChat.querySelectorAll(".chat-message")]
+      .slice(-6)
+      .map((message) => {
+        const role = message.classList.contains("user") ? "学習者" : "ロボット君";
+        return `${role}: ${message.querySelector(".chat-bubble")?.textContent || ""}`;
+      })
+      .join("\n");
+  }
+
   function addChatMessage(text, sender = "robot", style = "") {
     const message = document.createElement("div");
     message.className = `chat-message ${sender} ${style}`.trim();
-    if (sender === "robot") {
-      const avatar = document.createElement("span");
-      avatar.className = "chat-mini-robot";
-      avatar.setAttribute("aria-hidden", "true");
-      message.appendChild(avatar);
-    }
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble";
     bubble.textContent = text;
@@ -682,34 +736,91 @@ doubled >> Display.`;
 
   function setRobotMood(mood = "neutral", duration = 0) {
     clearTimeout(robotMoodTimer);
-    elements.robotAvatar.classList.remove("happy", "thinking", "encourage");
+    elements.robotAvatar.classList.remove(
+      "happy", "thinking", "encourage", "sad", "surprised",
+    );
     if (mood !== "neutral") elements.robotAvatar.classList.add(mood);
     if (duration) {
       robotMoodTimer = setTimeout(() => {
-        elements.robotAvatar.classList.remove("happy", "thinking", "encourage");
+        elements.robotAvatar.classList.remove(
+          "happy", "thinking", "encourage", "sad", "surprised",
+        );
       }, duration);
     }
   }
 
-  function introduceCurrentLesson() {
-    const lesson = currentLesson();
-    if (!lesson) return;
-    setRobotMood("neutral");
-    clearLessonChat();
-    robotSpeak(`${lesson.intro}\n準備ができたら「▶ はじめる」を押してね。`);
+  function setTutorBusy(busy) {
+    elements.tutorStatus.classList.toggle("busy", busy);
+    elements.tutorStatus.lastChild.textContent = busy ? " 考えています…" : " Gemini先生";
+    elements.tutorThinking.hidden = !busy;
   }
 
   function selectLesson(nextIndex) {
     if (!lessons.length) return;
+    aiLesson = null;
     lessonIndex = Math.min(Math.max(0, nextIndex), lessons.length - 1);
     activeLessonId = null;
     hintIndex = 0;
     localStorage.setItem(STORAGE.lessonIndex, String(lessonIndex));
     renderLesson();
-    introduceCurrentLesson();
+    openCurrentLesson({ introduction: true });
   }
 
-  function openCurrentLesson() {
+  function showTutorProfile() {
+    elements.welcomeIntro.hidden = true;
+    elements.tutorProfileForm.hidden = false;
+    elements.lessonPanel.classList.add("profile-mode");
+    elements.tutorGoal.value = tutorProfile.goal;
+    document.querySelectorAll('input[name="tutorLevel"]').forEach((input) => {
+      input.checked = input.value === tutorProfile.level;
+    });
+    elements.tutorGoal.focus();
+  }
+
+  function welcomeTutor(event) {
+    event.preventDefault();
+    const selectedLevel = document.querySelector('input[name="tutorLevel"]:checked');
+    tutorProfile = {
+      level: selectedLevel?.value || "はじめて",
+      goal: elements.tutorGoal.value.trim(),
+    };
+    localStorage.setItem(STORAGE.tutorProfile, JSON.stringify(tutorProfile));
+    tutorWelcomed = true;
+    localStorage.setItem(STORAGE.tutorWelcomed, "yes");
+    lessonIndex = 0;
+    localStorage.setItem(STORAGE.lessonIndex, "0");
+    renderTutorShell();
+    openCurrentLesson({ introduction: true, firstMeeting: true });
+  }
+
+  function resetLessons() {
+    if (!confirm("レッスン進捗と、経験レベル・作りたいものなどのAI設定をすべて消しますか？")) return;
+    completedLessons.clear();
+    tunedLessons.clear();
+    aiLesson = null;
+    activeLessonId = null;
+    hintIndex = 0;
+    lessonIndex = 0;
+    tutorProfile = { level: "はじめて", goal: "" };
+    tutorWelcomed = false;
+    tutorRequestSequence += 1;
+    localStorage.removeItem(STORAGE.lessonProgress);
+    localStorage.removeItem(STORAGE.lessonIndex);
+    localStorage.removeItem(STORAGE.tutorProfile);
+    localStorage.removeItem(STORAGE.tutorWelcomed);
+    elements.tutorProfileForm.reset();
+    elements.tutorProfileForm.hidden = true;
+    elements.welcomeIntro.hidden = false;
+    elements.lessonPanel.classList.remove("profile-mode");
+    clearLessonChat();
+    setTutorBusy(false);
+    setRobotMood("neutral");
+    if (lessons[0]) setSource(lessons[0].starter);
+    renderLesson();
+    showToast("進捗とAI設定をリセットしました");
+  }
+
+  function openCurrentLesson({ introduction = false, firstMeeting = false } = {}) {
     const lesson = currentLesson();
     if (!lesson) return;
     activeLessonId = lesson.id;
@@ -718,48 +829,323 @@ doubled >> Display.`;
     setSource(lesson.starter);
     renderLesson();
     clearLessonChat();
-    robotSpeak(`コードを少し直して、◎ の目標を達成しよう。\nできたら「✓ 答え合わせ」！`);
-    showToast(`レッスン「${lesson.title}」を開始しました`);
+    if (introduction) {
+      const baseLesson = lessons[lessonIndex];
+      const cachedTuning = baseLesson ? tunedLessons.get(baseLesson.id) : null;
+      if (!aiLesson && lessonIndex > 0 && !cachedTuning) {
+        tuneLessonForProfile(baseLesson);
+      } else if (cachedTuning) {
+        setRobotMood(cachedTuning.mood || "neutral", 2800);
+        robotSpeak(cachedTuning.intro);
+      } else {
+        askRobot(firstMeeting ? "first_meeting" : "lesson_start", {
+          fallback: firstMeeting
+            ? `はじめまして！ ロボット君です。\n最初の目標は「${lesson.goal}」。一緒にやってみよう！`
+            : `${lesson.intro}\n目標は「${lesson.goal}」。できたら答え合わせしてね。`,
+        });
+      }
+    }
   }
 
-  function showLessonHint() {
+  async function tuneLessonForProfile(baseLesson) {
+    if (!baseLesson || baseLesson.id === lessons[0]?.id) return;
+    const requiredFeature = LESSON_FEATURES[baseLesson.id];
+    setRobotMood("thinking");
+    setTutorBusy(true);
+    try {
+      const text = await callGemini(
+        [
+          "あなたはPopPop言語の教材編集者です。",
+          "次の既存レッスンを参考に、学習者一人のための新しい問題を一問だけ作ってください。",
+          `今回必ず学ぶ機能は ${requiredFeature} です。starterとsolutionの両方で使ってください。`,
+          "元のコードと同じ確実な構文構造を使い、値・変数名・題材・正解条件は変えて構いません。",
+          "starterは実行可能だが目標をまだ満たさず、solutionは目標を満たす完成コードにします。",
+          "starterとsolutionの最後の文は、必ず `値または変数 >> Display.` にしてください。",
+          "改行には構文上の意味がありません。通常の文は `.`、ブロック全体は `..` で閉じます。",
+          "introは80文字以内、goalは60文字以内、hintsは2個にしてください。",
+          "JSONだけを返してください。",
+          '形式: {"title":"題名","intro":"導入","goal":"目標","starter":"未完成コード","solution":"完成コード","hints":["ヒント1","ヒント2"],"mood":"neutral"}',
+          "moodは neutral, happy, thinking, encourage, surprised のいずれかです。",
+          `学習者の経験: ${tutorProfile.level}`,
+          `学習者が作りたいもの: ${tutorProfile.goal || "まだ決めていない"}`,
+          `元の題名: ${baseLesson.title}`,
+          `元の導入: ${baseLesson.intro}`,
+          `元の目標: ${baseLesson.goal}`,
+          `元のヒント: ${(baseLesson.hints || []).join(" / ")}`,
+          `安全な未完成コード例:\n${baseLesson.starter}`,
+          `安全な完成コード例:\n${baseLesson.solution}`,
+        ].join("\n\n"),
+        true,
+      );
+      const data = parseJsonText(text);
+      if (
+        !data?.intro || !data?.goal || !data?.starter || !data?.solution ||
+        !Array.isArray(data?.hints)
+      ) {
+        throw new Error("生成した問題を読み取れませんでした");
+      }
+      if (
+        !hasFinalDisplay(data.starter) || !hasFinalDisplay(data.solution) ||
+        !String(data.starter).includes(requiredFeature) ||
+        !String(data.solution).includes(requiredFeature) ||
+        String(data.starter).trim() === String(data.solution).trim()
+      ) {
+        throw new Error("生成した問題がレッスン条件を満たしませんでした");
+      }
+      const moods = ["neutral", "happy", "thinking", "encourage", "surprised"];
+      const tuned = {
+        ...baseLesson,
+        dynamic: true,
+        title: String(data.title || baseLesson.title).slice(0, 40),
+        intro: String(data.intro).slice(0, 160),
+        goal: String(data.goal).slice(0, 120),
+        starter: String(data.starter).trim(),
+        solution: String(data.solution).trim(),
+        hints: data.hints.slice(0, 2).map((hint) => String(hint).slice(0, 180)),
+        mood: moods.includes(data.mood) ? data.mood : "neutral",
+      };
+      tunedLessons.set(baseLesson.id, tuned);
+      if (activeLessonId === baseLesson.id && !aiLesson) {
+        setSource(tuned.starter);
+        renderLesson();
+        setRobotMood(tuned.mood, 2800);
+        robotSpeak(tuned.intro);
+      }
+    } catch {
+      if (activeLessonId === baseLesson.id && !aiLesson) {
+        setRobotMood("encourage", 2200);
+        robotSpeak(baseLesson.intro);
+      }
+    } finally {
+      setTutorBusy(false);
+    }
+  }
+
+  async function showLessonHint() {
     const lesson = currentLesson();
     if (!lesson || activeLessonId !== lesson.id) return;
     const hints = lesson.hints ?? [];
     if (!hints.length) return;
-    setRobotMood("thinking", 1600);
-    robotSpeak(`ヒント ${Math.min(hintIndex + 1, hints.length)}：${hints[hintIndex]}`);
+    const hint = hints[hintIndex];
     hintIndex = Math.min(hintIndex + 1, hints.length - 1);
+    await askRobot("hint", {
+      extra: `教材のヒント: ${hint}`,
+      fallback: `ここに注目してみよう：${hint}`,
+    });
   }
 
-  function showLessonAnswer() {
+  async function showLessonAnswer() {
     const lesson = currentLesson();
     if (!lesson || activeLessonId !== lesson.id) return;
-    setRobotMood("neutral");
     setSource(lesson.solution);
-    robotSpeak("答えを表示したよ。実行して流れを確かめよう！");
+    await askRobot("answer_revealed", {
+      fallback: "答えを表示したよ。実行して、値の流れを一緒に確かめよう。",
+    });
   }
 
-  function handleLessonResult(validation) {
+  async function handleLessonResult(validation) {
     const lesson = currentLesson();
     if (!lesson || activeLessonId !== lesson.id) return;
     if (validation.passed) {
-      setRobotMood("happy", 3600);
       completedLessons.add(lesson.id);
       localStorage.setItem(
         STORAGE.lessonProgress,
         JSON.stringify([...completedLessons]),
       );
-      robotSpeak(`やったー！ ${validation.message}`, true);
       if (lessonIndex < lessons.length - 1) {
         elements.advanceLessonButton.hidden = false;
-      } else {
-        robotSpeak("全レッスン完走！ おめでとう！", true);
       }
       renderLesson();
+      await askRobot(
+        lessonIndex < lessons.length - 1 ? "correct" : "course_complete",
+        {
+          extra: `実行環境の判定: ${validation.message}`,
+          fallback: lessonIndex < lessons.length - 1
+            ? `正解！ ${validation.message} 次もきっとできるよ。`
+            : `全レッスン完走！ ${validation.message} 本当におめでとう！`,
+          success: true,
+        },
+      );
     } else {
+      await askRobot("incorrect", {
+        extra: `実行環境の判定: ${validation.message}`,
+        fallback: `${validation.message}\nあと少し。コードの流れを一緒に見直そう。`,
+      });
+    }
+  }
+
+  async function callGemini(promptText, jsonMode = false) {
+    const proxyResponse = await fetch("/api/gemini", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: promptText, json: jsonMode }),
+    }).catch(() => null);
+    if (proxyResponse?.ok) {
+      const payload = await proxyResponse.json();
+      return payload.text?.trim() || null;
+    }
+    const detail = await proxyResponse?.json().catch(() => ({}));
+    throw new Error(detail?.error || "Gemini先生に接続できませんでした");
+  }
+
+  function parseJsonText(text) {
+    if (!text) return null;
+    try {
+      return JSON.parse(text);
+    } catch {
+      const match = text.match(/\{[\s\S]*\}/);
+      return match ? JSON.parse(match[0]) : null;
+    }
+  }
+
+  function hasFinalDisplay(source) {
+    return />>\s*Display\.\s*$/.test(String(source || ""));
+  }
+
+  async function askRobot(event, {
+    extra = "",
+    fallback = "いっしょに考えてみよう。",
+    success = false,
+  } = {}) {
+    const lesson = currentLesson();
+    const requestId = ++tutorRequestSequence;
+    setRobotMood("thinking");
+    setTutorBusy(true);
+    try {
+      const text = await callGemini(
+        [
+          "あなたはPopPop Playgroundに住む、親しみやすいロボット先生です。",
+          "幼すぎない、短く自然な日本語で話します。1回の発言は原則80文字以内です。",
+          "ユーザーの答えを奪わず、次の一歩が分かる言葉を選びます。",
+          "正誤は与えられた実行環境の判定に必ず従い、自分で覆しません。",
+          "状況に合う表情をあなた自身で選んでください。",
+          "moodは neutral, happy, thinking, encourage, sad, surprised のいずれかです。",
+          "JSONだけを返してください。",
+          '形式: {"message":"画面に表示する発言","mood":"表情"}',
+          `出来事: ${event}`,
+          `学習者の経験: ${tutorProfile.level}`,
+          `学習者が作りたいもの: ${tutorProfile.goal || "まだ決めていない"}`,
+          `レッスン: ${lesson?.title || "なし"}`,
+          `目標: ${lesson?.goal || "なし"}`,
+          `現在のコード:\n${getSource()}`,
+          `直前の会話:\n${recentTutorConversation() || "なし"}`,
+          extra,
+        ].filter(Boolean).join("\n\n"),
+        true,
+      );
+      if (requestId !== tutorRequestSequence) return;
+      const data = parseJsonText(text);
+      const moods = new Set(["neutral", "happy", "thinking", "encourage", "sad", "surprised"]);
+      const mood = moods.has(data?.mood) ? data.mood : success ? "happy" : "neutral";
+      const message = String(data?.message || fallback).trim().slice(0, 240);
+      setRobotMood(mood, mood === "thinking" ? 1800 : 3200);
+      robotSpeak(message, success || mood === "happy");
+    } catch {
+      if (requestId !== tutorRequestSequence) return;
+      setRobotMood(success ? "happy" : "encourage", 2400);
+      robotSpeak(fallback, success);
+    } finally {
+      if (requestId === tutorRequestSequence) setTutorBusy(false);
+    }
+  }
+
+  async function evaluateAiLesson(result) {
+    const lesson = currentLesson();
+    if (!lesson?.dynamic) return;
+    const requestId = ++tutorRequestSequence;
+    setRobotMood("thinking");
+    setTutorBusy(true);
+    try {
+      const text = await callGemini(
+        [
+          "あなたはPopPop言語の練習問題を採点する先生です。",
+          "完成例との文字列一致ではなく、目標を達成しているかで判定してください。",
+          "JSONだけを返してください。",
+          '形式: {"passed":true,"message":"80文字以内の講評","mood":"happy"}',
+          "moodは happy, encourage, thinking, surprised のいずれかです。",
+          `目標: ${lesson.goal}`,
+          `完成例:\n${lesson.solution}`,
+          `ユーザーのコード:\n${getSource()}`,
+          `実行結果: ${JSON.stringify(result)}`,
+        ].join("\n\n"),
+        true,
+      );
+      if (requestId !== tutorRequestSequence) return;
+      const data = parseJsonText(text);
+      const passed = data?.passed === true;
+      if (passed && lessons.some((baseLesson) => baseLesson.id === lesson.id)) {
+        completedLessons.add(lesson.id);
+        localStorage.setItem(
+          STORAGE.lessonProgress,
+          JSON.stringify([...completedLessons]),
+        );
+        elements.advanceLessonButton.hidden = lessonIndex >= lessons.length - 1;
+        renderLesson();
+      }
+      const mood = ["happy", "encourage", "thinking", "surprised"].includes(data?.mood)
+        ? data.mood
+        : passed ? "happy" : "encourage";
+      setRobotMood(mood, 3200);
+      robotSpeak(
+        String(data?.message || (passed ? "目標達成！ よくできました。" : "あと少し。出力を見直してみよう。")).slice(0, 240),
+        passed,
+      );
+    } catch {
+      setRobotMood("encourage", 2400);
+      robotSpeak("実行できたね。出力と目標が同じになっているか、見比べてみよう。");
+    } finally {
+      if (requestId === tutorRequestSequence) setTutorBusy(false);
+    }
+  }
+
+  async function createAiLesson() {
+    setRobotMood("thinking");
+    setTutorBusy(true);
+    try {
+      const text = await callGemini(
+        [
+          "あなたはPopPop言語のやさしい先生です。",
+          "初心者向けの短い練習問題を1つ作ってください。",
+          "PopPopは `>>` で値を流し、通常の文は `.`、ブロック全体は `..` で閉じます。",
+          "使えるもの: Display, Map(name):, Filter(name):, Reduce(name):, Check(name): is ... else:, Update(name):, Fork(name):, Range, Sum, Length, Random, Get。",
+          "最終結果は必ず `>> Display.` で表示してください。",
+          `学習者の経験は「${tutorProfile.level}」です。難しさと説明量を合わせてください。`,
+          `作りたいものは「${tutorProfile.goal || "まだ決めていない"}」です。できるだけ近い題材にしてください。`,
+          "JSONだけを返してください。",
+          '形式: {"title":"短いタイトル","goal":"目標","starter":"未完成コード","solution":"完成コード","hints":["ヒント1","ヒント2"]}',
+        ].join("\n"),
+        true,
+      );
+      const data = parseJsonText(text);
+      if (!data?.starter || !data?.solution || !data?.goal) throw new Error("AIの問題形式を読み取れませんでした");
+      if (!hasFinalDisplay(data.starter) || !hasFinalDisplay(data.solution)) {
+        throw new Error("最後に Display を使う問題を作れませんでした");
+      }
+      aiLesson = {
+        id: `ai-${Date.now()}`,
+        dynamic: true,
+        badge: "AI",
+        title: data.title || "AI問題",
+        goal: data.goal,
+        intro: "Geminiが作ったその場限りの問題です。",
+        starter: data.starter,
+        solution: data.solution,
+        hints: Array.isArray(data.hints) ? data.hints : [],
+      };
+      activeLessonId = aiLesson.id;
+      hintIndex = 0;
+      setSource(aiLesson.starter);
+      renderLesson();
+      clearLessonChat();
+      await askRobot("ai_lesson_created", {
+        extra: `あなたが作った新しい問題の目標: ${aiLesson.goal}`,
+        fallback: `${aiLesson.title}\n${aiLesson.goal}\nできたら答え合わせしてね。`,
+      });
+    } catch (error) {
       setRobotMood("encourage", 1800);
-      robotSpeak(validation.message);
+      robotSpeak("今は新しい問題を作れなかったよ。少し時間をおいて、もう一度試してね。");
+    } finally {
+      setTutorBusy(false);
     }
   }
 
@@ -776,31 +1162,50 @@ doubled >> Display.`;
     return `実行中に問題を見つけました。\n${localized}\n慌てなくて大丈夫。ヒントも使えます。`;
   }
 
-  function answerLessonQuestion(question) {
+  async function answerLessonQuestion(question) {
     const lesson = currentLesson();
-    const normalized = question.toLowerCase();
-    setRobotMood("thinking", 1400);
-    if (!lesson) return "レッスンを読み込み中です。少し待ってからもう一度聞いてね。";
-    if (/ヒント|hint/.test(normalized)) return lesson.hints?.[hintIndex] ?? lesson.goal;
-    if (/エラー|error/.test(normalized)) {
-      return elements.diagnosticsPanel.textContent === "構文上の問題はありません。"
-        ? "今のところ構文上の問題はありません。実行結果が課題のゴールと同じか確認しよう。"
-        : elements.diagnosticsPanel.textContent;
+    if (!lesson) {
+      robotSpeak("レッスンを準備しています。少し待ってね。");
+      return;
     }
-    if (normalized.includes("@")) {
-      return "@ はブロックへ渡された現在値です。先頭のパイプでは null になります。この課題では名前付きの値も使えます。";
+    const requestId = ++tutorRequestSequence;
+    setRobotMood("thinking");
+    setTutorBusy(true);
+    try {
+      const text = await callGemini(
+        [
+          "あなたはPopPop Playgroundに住むロボット先生です。",
+          "短く自然な日本語で、質問に直接答えてください。",
+          "完成コードを丸ごと渡さず、理解できる次の一手を示してください。",
+          "PopPopでは改行に構文上の意味はなく、通常の文は .、ブロック全体は .. で閉じます。",
+          ">> は左の値を右へ流します。すべての標準関数は元の値を破壊しません。",
+          "不確かな仕様を作らず、分からない場合は仕様書を確認するよう伝えてください。",
+          "JSONだけを返してください。",
+          '形式: {"message":"回答","mood":"neutral"}',
+          "moodは neutral, happy, thinking, encourage, sad, surprised のいずれかです。",
+          `学習者の経験: ${tutorProfile.level}`,
+          `学習者が作りたいもの: ${tutorProfile.goal || "まだ決めていない"}`,
+          `現在の目標: ${lesson.goal}`,
+          `現在のコード:\n${getSource()}`,
+          `診断:\n${elements.diagnosticsPanel.textContent}`,
+          `直前の会話:\n${recentTutorConversation() || "なし"}`,
+          `質問: ${question}`,
+        ].join("\n\n"),
+        true,
+      );
+      if (requestId !== tutorRequestSequence) return;
+      const data = parseJsonText(text);
+      const moods = ["neutral", "happy", "thinking", "encourage", "sad", "surprised"];
+      const mood = moods.includes(data?.mood) ? data.mood : "neutral";
+      setRobotMood(mood, 3000);
+      robotSpeak(String(data?.message || "もう少し詳しく教えてくれる？").slice(0, 320));
+    } catch {
+      if (requestId !== tutorRequestSequence) return;
+      setRobotMood("sad", 2400);
+      robotSpeak("うまく考えを届けられなかったよ。少し待って、もう一度聞いてみてね。");
+    } finally {
+      if (requestId === tutorRequestSequence) setTutorBusy(false);
     }
-    if (normalized.includes(">>") || /パイプ/.test(normalized)) {
-      return ">> は左の値を右の処理へ渡します。最後が小文字の名前なら、その名前へ現在値を束縛します。";
-    }
-    if (/map/i.test(question)) return "Map は List の各要素を順番にブロックへ渡し、結果から新しい List を作ります。";
-    if (/filter/i.test(question)) return "Filter はブロックが true を返した要素だけを残します。結果は必ず新しい List です。";
-    if (/reduce/i.test(question)) return "Reduce の現在値は [accumulator, item] です。名前を付けた場合は name[0] と name[1] で参照します。";
-    if (/update/i.test(question)) return "Update は `新しい値 >> 名前::field.` の向きで、元の Dict を変更せず更新後の Dict を返します。";
-    if (/check|分岐/i.test(question)) return "Check は上から is を調べ、最初に一致したブロックを実行します。最後の else は必須です。";
-    if (/loop|break/i.test(question)) return "Loop はブロックの最後の値を次の状態として繰り返し、値を Break へ渡すと終了します。";
-    if (/終|ドット|\./.test(normalized)) return "通常の文は `.`、Map や Check などのブロック全体は `..` で閉じます。改行そのものには構文上の意味がありません。";
-    return `いい質問です。今の目標は「${lesson.goal}」です。まず結果を予想して実行し、違ったらヒントを一つずつ使ってみよう。`;
   }
 
   function showLessonOverview() {
@@ -809,13 +1214,15 @@ doubled >> Display.`;
       const mark = completedLessons.has(lesson.id) ? "✓" : index === lessonIndex ? "→" : "・";
       return `${mark} ${lesson.badge} ${lesson.title}`;
     }).join("\n");
-    robotSpeak(`基礎コース一覧\n${overview}`);
+    askRobot("course_overview", {
+      extra: `コース一覧:\n${overview}`,
+      fallback: `基礎コース一覧\n${overview}`,
+    });
   }
 
   function advanceLesson() {
     if (lessonIndex >= lessons.length - 1) return;
     selectLesson(lessonIndex + 1);
-    openCurrentLesson();
   }
 
   function formatSource() {
@@ -918,10 +1325,13 @@ doubled >> Display.`;
     elements.nextLessonButton.addEventListener("click", () =>
       selectLesson(lessonIndex + 1));
     elements.lessonTitleButton.addEventListener("click", showLessonOverview);
-    elements.openLessonButton.addEventListener("click", openCurrentLesson);
+    elements.welcomeTutorButton.addEventListener("click", showTutorProfile);
+    elements.tutorProfileForm.addEventListener("submit", welcomeTutor);
+    elements.resetLessonButton.addEventListener("click", resetLessons);
     elements.checkLessonButton.addEventListener("click", startRun);
     elements.hintButton.addEventListener("click", showLessonHint);
     elements.showAnswerButton.addEventListener("click", showLessonAnswer);
+    elements.aiLessonButton.addEventListener("click", createAiLesson);
     elements.advanceLessonButton.addEventListener("click", advanceLesson);
     elements.lessonQuestionForm.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -929,7 +1339,7 @@ doubled >> Display.`;
       if (!question) return;
       addChatMessage(question, "user");
       elements.lessonQuestion.value = "";
-      robotSpeak(answerLessonQuestion(question));
+      answerLessonQuestion(question);
     });
     elements.exampleSearch.addEventListener("input", renderExamples);
     elements.referenceSearch.addEventListener("input", renderReferences);

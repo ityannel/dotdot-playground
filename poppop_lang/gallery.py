@@ -186,6 +186,140 @@ GALLERY = (
             '"お買い物の合計は {total} 円です。" >> Display.'
         ),
     },
+    {
+        "id": "string-greeting",
+        "category": "文字",
+        "title": "文字｜あいさつを作ろう",
+        "description": "文字列の補完で、名前入りのメッセージを作ります。",
+        "interactive": False,
+        "code": (
+            '"Mika" >> name.\n'
+            '"こんにちは、{name}さん！" >> message.\n\n'
+            "message >> Display."
+        ),
+    },
+    {
+        "id": "word-counter",
+        "category": "文字",
+        "title": "文字｜言葉の数を数えよう",
+        "description": "Splitで文章を分け、Lengthで数を調べます。",
+        "interactive": False,
+        "code": (
+            '"pop pop corn" >> text.\n'
+            '(text, " ") >> Split >> words.\n'
+            "words >> Length >> count.\n\n"
+            '"言葉は {count} 個あります。" >> Display.'
+        ),
+    },
+    {
+        "id": "list-sum",
+        "category": "リスト",
+        "title": "リスト｜合計を出そう",
+        "description": "Sumでリスト内の数値をまとめて足します。",
+        "interactive": False,
+        "code": (
+            "[3, 5, 8, 13] >> numbers.\n"
+            "numbers >> Sum >> total.\n\n"
+            '"合計は {total} です。" >> Display.'
+        ),
+    },
+    {
+        "id": "list-append",
+        "category": "リスト",
+        "title": "リスト｜予定を足そう",
+        "description": "Appendで新しいリストを作り、元のリストはそのままにします。",
+        "interactive": False,
+        "code": (
+            '["朝ごはん", "散歩"] >> plan.\n'
+            '(plan, "PopPopを書く") >> Append >> today.\n\n'
+            "today >> Display."
+        ),
+    },
+    {
+        "id": "sort-ranking",
+        "category": "リスト",
+        "title": "リスト｜点数順に並べよう",
+        "description": "Sortで辞書のリストを点数の高い順に並べます。",
+        "interactive": False,
+        "code": (
+            '[{"name": "Aoi", "score": 92}, {"name": "Ren", "score": 75}, {"name": "Sora", "score": 88}] >> players.\n'
+            "players >> Sort(player):\n"
+            "    -player::score.\n"
+            ".. >> ranking.\n\n"
+            "ranking >> Display."
+        ),
+    },
+    {
+        "id": "group-colors",
+        "category": "リスト",
+        "title": "リスト｜色ごとに分けよう",
+        "description": "Groupで同じキーを持つデータをまとめます。",
+        "interactive": False,
+        "code": (
+            '[{"color": "red", "name": "apple"}, {"color": "yellow", "name": "banana"}, {"color": "red", "name": "strawberry"}] >> fruits.\n'
+            "fruits >> Group(fruit):\n"
+            "    fruit::color.\n"
+            ".. >> boxes.\n\n"
+            "boxes >> Display."
+        ),
+    },
+    {
+        "id": "dict-update",
+        "category": "辞書",
+        "title": "辞書｜プロフィールを更新しよう",
+        "description": "Updateで辞書を非破壊的に更新します。",
+        "interactive": False,
+        "code": (
+            '{"name": "PopPop", "level": 1} >> profile.\n'
+            "profile >> Update(user):\n"
+            "    user::level + 1 >> user::level.\n"
+            '    "PopCorn" >> user::release.\n'
+            ".. >> next_profile.\n\n"
+            "next_profile >> Display."
+        ),
+    },
+    {
+        "id": "fork-statistics",
+        "category": "集計",
+        "title": "集計｜まとめて計算しよう",
+        "description": "Forkで同じリストから複数の結果を作ります。",
+        "interactive": False,
+        "code": (
+            "[4, 8, 15, 16, 23, 42] >> scores.\n"
+            "scores >> Fork(values):\n"
+            "    values >> Sum.\n"
+            "    values >> Max.\n"
+            "    values >> Min.\n"
+            ".. >> summary.\n\n"
+            "summary >> Display."
+        ),
+    },
+    {
+        "id": "zip-add",
+        "category": "集計",
+        "title": "集計｜二つのリストを足そう",
+        "description": "Zipで二つのリストを組にしてからMapで足します。",
+        "interactive": False,
+        "code": (
+            "([1, 2, 3], [10, 20, 30]) >> Zip >> Map(pair):\n"
+            "    pair[0] + pair[1].\n"
+            ".. >> sums.\n\n"
+            "sums >> Display."
+        ),
+    },
+    {
+        "id": "lucky-snack",
+        "category": "ミニゲーム",
+        "title": "ミニゲーム｜おやつルーレット",
+        "description": "RandomとGetで、今日のおやつをひとつ選びます。",
+        "interactive": False,
+        "code": (
+            '["ポップコーン", "プリン", "クッキー", "ドーナツ"] >> snacks.\n'
+            "(0, 3) >> Random >> index.\n"
+            "(snacks, index) >> Get >> snack.\n\n"
+            '"今日のおやつは {snack} です。" >> Display.'
+        ),
+    },
 )
 
 

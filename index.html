@@ -108,48 +108,87 @@
           </div>
           <div>
             <strong>ロボット君</strong>
-            <span class="tutor-online"><i></i> レッスンできます</span>
+            <span id="tutorStatus" class="tutor-online"><i></i> Gemini先生</span>
           </div>
+          <button id="resetLessonButton" class="tutor-reset" type="button" aria-label="進捗とAI設定をリセット">↻ 全リセット</button>
         </div>
 
-        <div class="lesson-progress" aria-label="レッスン進捗">
-          <div class="lesson-progress-label">
-            <span>進捗</span>
-            <strong id="lessonProgressText">0 / 0</strong>
+        <section id="tutorWelcome" class="tutor-welcome" aria-labelledby="tutorWelcomeTitle">
+          <span class="welcome-spark spark-one" aria-hidden="true">✦</span>
+          <span class="welcome-spark spark-two" aria-hidden="true">●</span>
+          <div id="welcomeIntro" class="welcome-intro">
+            <h2 id="tutorWelcomeTitle">いっしょに<br>PopPopしよう。</h2>
+            <p>コードを書いて、動かして、困ったらすぐ聞けるよ。</p>
+            <button id="welcomeTutorButton" type="button">
+              ロボット君と始める <span aria-hidden="true">→</span>
+            </button>
+            <small>次からは、すぐレッスンを開きます</small>
           </div>
-          <div class="progress-track">
-            <span id="lessonProgressBar"></span>
-          </div>
-        </div>
 
-        <div class="lesson-picker">
-          <button id="previousLessonButton" class="lesson-arrow" type="button" aria-label="前のレッスン">← 戻る</button>
-          <button id="lessonTitleButton" class="lesson-title-button" type="button">
-            <span id="lessonBadge">—</span>
-            <strong id="lessonTitle">準備中…</strong>
+          <form id="tutorProfileForm" class="tutor-profile" hidden>
+            <h2>あなたに合う<br>問題をつくるね。</h2>
+            <fieldset>
+              <legend>プログラミングはどのくらい？</legend>
+              <div class="level-options">
+                <label><input type="radio" name="tutorLevel" value="はじめて" checked><span>はじめて</span></label>
+                <label><input type="radio" name="tutorLevel" value="少し書ける"><span>少し書ける</span></label>
+                <label><input type="radio" name="tutorLevel" value="慣れている"><span>慣れている</span></label>
+              </div>
+            </fieldset>
+            <label class="profile-goal" for="tutorGoal">
+              <span>何を作ってみたい？</span>
+              <input id="tutorGoal" type="text" maxlength="80" placeholder="ゲーム、占い、データ整理…" required>
+            </label>
+            <button type="submit">
+              わたし向けに始める <span aria-hidden="true">→</span>
+            </button>
+          </form>
+        </section>
+
+        <div id="tutorSession" class="tutor-session" hidden>
+          <div class="lesson-progress" aria-label="レッスン進捗">
+            <div class="lesson-progress-label">
+              <span>進捗</span>
+              <strong id="lessonProgressText">0 / 0</strong>
+            </div>
+            <div class="progress-track">
+              <span id="lessonProgressBar"></span>
+            </div>
+          </div>
+
+          <div class="lesson-picker">
+            <button id="previousLessonButton" class="lesson-arrow" type="button" aria-label="前のレッスン">←</button>
+            <button id="lessonTitleButton" class="lesson-title-button" type="button">
+              <span id="lessonBadge">—</span>
+              <strong id="lessonTitle">準備中…</strong>
+            </button>
+            <button id="nextLessonButton" class="lesson-arrow" type="button" aria-label="次のレッスン">→</button>
+          </div>
+
+          <div class="lesson-goal"><span aria-hidden="true">◎</span><span id="lessonGoal">読み込み中…</span></div>
+
+          <div id="lessonChat" class="lesson-chat" aria-live="polite" aria-label="ロボット君との会話"></div>
+          <div id="tutorThinking" class="tutor-thinking" role="status" hidden>
+            <span class="thinking-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span>考え中</span>
+          </div>
+
+          <div class="lesson-actions">
+            <button id="checkLessonButton" class="button lesson-check" type="button" disabled><span aria-hidden="true">✓</span> 答え合わせ</button>
+            <button id="hintButton" class="button" type="button" disabled aria-label="ヒント"><span aria-hidden="true">💡</span> ヒント</button>
+            <button id="showAnswerButton" class="button" type="button" disabled aria-label="答えを見る"><span aria-hidden="true">👀</span> 答え</button>
+            <button id="aiLessonButton" class="button" type="button"><span aria-hidden="true">✦</span> おまかせ問題</button>
+          </div>
+          <button id="advanceLessonButton" class="advance-lesson" type="button" hidden>
+            次のレッスンへ <span aria-hidden="true">→</span>
           </button>
-          <button id="nextLessonButton" class="lesson-arrow" type="button" aria-label="次のレッスン">次 →</button>
+
+          <form id="lessonQuestionForm" class="lesson-question">
+            <label class="sr-only" for="lessonQuestion">ロボット君に質問</label>
+            <input id="lessonQuestion" placeholder="ここでロボット君に聞けます" autocomplete="off">
+            <button type="submit" aria-label="質問を送信">➤</button>
+          </form>
         </div>
-
-        <div class="lesson-goal"><span aria-hidden="true">◎</span><span id="lessonGoal">読み込み中…</span></div>
-
-        <div id="lessonChat" class="lesson-chat" aria-live="polite" aria-label="ロボット君との会話"></div>
-
-        <div class="lesson-actions">
-          <button id="openLessonButton" class="button primary" type="button"><span aria-hidden="true">▶</span> はじめる</button>
-          <button id="checkLessonButton" class="button lesson-check" type="button" disabled><span aria-hidden="true">✓</span> 答え合わせ</button>
-          <button id="hintButton" class="button" type="button" disabled><span aria-hidden="true">💡</span> ヒント</button>
-          <button id="showAnswerButton" class="button" type="button" disabled><span aria-hidden="true">👀</span> 答え</button>
-        </div>
-        <button id="advanceLessonButton" class="advance-lesson" type="button" hidden>
-          次のレッスンへ <span aria-hidden="true">→</span>
-        </button>
-
-        <form id="lessonQuestionForm" class="lesson-question">
-          <label class="sr-only" for="lessonQuestion">ロボット君に質問</label>
-          <input id="lessonQuestion" placeholder="ロボット君に質問…" autocomplete="off">
-          <button type="submit" aria-label="質問を送信">➤</button>
-        </form>
       </section>
     </aside>
 
