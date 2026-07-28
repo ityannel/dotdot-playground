@@ -1236,6 +1236,9 @@ doubled >> Display.`;
           "初心者向けの短い練習問題を1つ作ってください。",
           "PopPopは `>>` で値を流し、通常の文は `.`、ブロック全体は `..` で閉じます。",
           "使えるもの: Display, Map(name):, Filter(name):, Reduce(name):, Check(name): is ... else:, Update(name):, Fork(name):, Range, Sum, Length, Random, Get。",
+          "標準関数を `Range(1, 6)` や `Sum()` のような括弧付き関数呼び出しにしてはいけません。",
+          "標準関数は `1 >> Range >> values.` や `values >> Sum >> total.` のように、パイプの段階として書いてください。",
+          "ブロックは提示した `Map(name): ... ..` などの形を崩さないでください。",
           "最終結果は必ず `>> Display.` で表示してください。",
           `学習者の経験は「${tutorProfile.level}」です。難しさと説明量を合わせてください。`,
           `作りたいものは「${tutorProfile.goal || "まだ決めていない"}」です。できるだけ近い題材にしてください。`,
@@ -1248,6 +1251,17 @@ doubled >> Display.`;
       if (!data?.starter || !data?.solution || !data?.goal) throw new Error("AIの問題形式を読み取れませんでした");
       if (!hasFinalDisplay(data.starter) || !hasFinalDisplay(data.solution)) {
         throw new Error("最後に Display を使う問題を作れませんでした");
+      }
+      const [starterValidation, solutionValidation] = await Promise.all([
+        validateGeneratedSource(data.starter),
+        validateGeneratedSource(data.solution),
+      ]);
+      if (!starterValidation.ok || !solutionValidation.ok) {
+        throw new Error(
+          `生成コードに未定義の文法があります: ${
+            starterValidation.error || solutionValidation.error || "構文エラー"
+          }`,
+        );
       }
       aiLesson = {
         id: `ai-${Date.now()}`,
