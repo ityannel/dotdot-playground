@@ -42,9 +42,40 @@ export default async function handler(request, response) {
 
   const payload = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: { maxOutputTokens: 1200 },
+    generationConfig: {
+      maxOutputTokens: task === "lesson" ? 4096 : 1200,
+    },
   };
-  if (request.body?.json) {
+  if (task === "lesson") {
+    payload.generationConfig.thinkingConfig = { thinkingLevel: "low" };
+    payload.generationConfig.responseFormat = {
+      text: {
+        mimeType: "application/json",
+        schema: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            intro: { type: "string" },
+            goal: { type: "string" },
+            starter: { type: "string" },
+            solution: { type: "string" },
+            hints: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 2,
+              maxItems: 2,
+            },
+            mood: {
+              type: "string",
+              enum: ["neutral", "happy", "thinking", "encourage", "surprised"],
+            },
+          },
+          required: ["title", "intro", "goal", "starter", "solution", "hints", "mood"],
+          additionalProperties: false,
+        },
+      },
+    };
+  } else if (request.body?.json) {
     payload.generationConfig.responseMimeType = "application/json";
   }
 
