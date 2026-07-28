@@ -7,7 +7,8 @@
     fontSize: "poppop.playground.fontSize",
     lessonIndex: "poppop.playground.lessonIndex.v1",
     lessonProgress: "poppop.playground.lessonProgress.v2",
-    tutorWelcomed: "poppop.playground.tutorWelcomed.v1",
+    tutorWelcomed: "poppop.playground.tutorWelcomed.v2",
+    tutorProfile: "poppop.playground.tutorProfile.v1",
   };
   const FALLBACK_SOURCE = `[1, 2, 3, 4] >> Map(value):
     value * 2.
@@ -26,7 +27,8 @@ doubled >> Display.`;
       "lessonProgressText", "lessonProgressBar", "previousLessonButton",
       "lessonTitleButton", "nextLessonButton", "lessonBadge", "lessonTitle",
       "lessonGoal", "lessonChat", "robotAvatar", "tutorStatus",
-      "tutorWelcome", "tutorSession", "welcomeTutorButton", "checkLessonButton",
+      "tutorWelcome", "tutorSession", "welcomeIntro", "welcomeTutorButton",
+      "tutorProfileForm", "tutorGoal", "tutorThinking", "checkLessonButton",
       "hintButton", "showAnswerButton", "lessonQuestionForm", "lessonQuestion",
       "aiLessonButton", "advanceLessonButton",
       "editor", "editorFallback", "saveStatus", "cursorStatus",
@@ -62,6 +64,7 @@ doubled >> Display.`;
   let robotMoodTimer = null;
   let aiLesson = null;
   let tutorWelcomed = localStorage.getItem(STORAGE.tutorWelcomed) === "yes";
+  let tutorProfile = { level: "はじめて", goal: "" };
   let tutorRequestSequence = 0;
 
   try {
@@ -70,6 +73,14 @@ doubled >> Display.`;
     );
   } catch {
     completedLessons = new Set();
+  }
+  try {
+    tutorProfile = {
+      ...tutorProfile,
+      ...JSON.parse(localStorage.getItem(STORAGE.tutorProfile) || "{}"),
+    };
+  } catch {
+    tutorProfile = { level: "はじめて", goal: "" };
   }
 
   function getSharedSource() {
@@ -648,6 +659,7 @@ doubled >> Display.`;
 
   function renderTutorShell() {
     elements.lessonPanel.classList.toggle("welcome-mode", !tutorWelcomed);
+    if (tutorWelcomed) elements.lessonPanel.classList.remove("profile-mode");
     elements.tutorWelcome.hidden = tutorWelcomed;
     elements.tutorSession.hidden = !tutorWelcomed;
   }
@@ -691,12 +703,6 @@ doubled >> Display.`;
   function addChatMessage(text, sender = "robot", style = "") {
     const message = document.createElement("div");
     message.className = `chat-message ${sender} ${style}`.trim();
-    if (sender === "robot") {
-      const avatar = document.createElement("span");
-      avatar.className = "chat-mini-robot";
-      avatar.setAttribute("aria-hidden", "true");
-      message.appendChild(avatar);
-    }
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble";
     bubble.textContent = text;
@@ -727,6 +733,7 @@ doubled >> Display.`;
   function setTutorBusy(busy) {
     elements.tutorStatus.classList.toggle("busy", busy);
     elements.tutorStatus.lastChild.textContent = busy ? " 考えています…" : " Gemini先生";
+    elements.tutorThinking.hidden = !busy;
   }
 
   function selectLesson(nextIndex) {
@@ -740,7 +747,25 @@ doubled >> Display.`;
     openCurrentLesson({ introduction: true });
   }
 
-  function welcomeTutor() {
+  function showTutorProfile() {
+    elements.welcomeIntro.hidden = true;
+    elements.tutorProfileForm.hidden = false;
+    elements.lessonPanel.classList.add("profile-mode");
+    elements.tutorGoal.value = tutorProfile.goal;
+    document.querySelectorAll('input[name="tutorLevel"]').forEach((input) => {
+      input.checked = input.value === tutorProfile.level;
+    });
+    elements.tutorGoal.focus();
+  }
+
+  function welcomeTutor(event) {
+    event.preventDefault();
+    const selectedLevel = document.querySelector('input[name="tutorLevel"]:checked');
+    tutorProfile = {
+      level: selectedLevel?.value || "はじめて",
+      goal: elements.tutorGoal.value.trim(),
+    };
+    localStorage.setItem(STORAGE.tutorProfile, JSON.stringify(tutorProfile));
     tutorWelcomed = true;
     localStorage.setItem(STORAGE.tutorWelcomed, "yes");
     renderTutorShell();
@@ -863,6 +888,8 @@ doubled >> Display.`;
           "JSONだけを返してください。",
           '形式: {"message":"画面に表示する発言","mood":"表情"}',
           `出来事: ${event}`,
+          `学習者の経験: ${tutorProfile.level}`,
+          `学習者が作りたいもの: ${tutorProfile.goal || "まだ決めていない"}`,
           `レッスン: ${lesson?.title || "なし"}`,
           `目標: ${lesson?.goal || "なし"}`,
           `現在のコード:\n${getSource()}`,
@@ -938,6 +965,8 @@ doubled >> Display.`;
           "PopPopは `>>` で値を流し、通常の文は `.`、ブロック全体は `..` で閉じます。",
           "使えるもの: Display, Map(name):, Filter(name):, Reduce(name):, Check(name): is ... else:, Update(name):, Fork(name):, Range, Sum, Length, Random, Get。",
           "最終結果は必ず `>> Display.` で表示してください。",
+          `学習者の経験は「${tutorProfile.level}」です。難しさと説明量を合わせてください。`,
+          `作りたいものは「${tutorProfile.goal || "まだ決めていない"}」です。できるだけ近い題材にしてください。`,
           "JSONだけを返してください。",
           '形式: {"title":"短いタイトル","goal":"目標","starter":"未完成コード","solution":"完成コード","hints":["ヒント1","ヒント2"]}',
         ].join("\n"),
@@ -1006,6 +1035,8 @@ doubled >> Display.`;
           "JSONだけを返してください。",
           '形式: {"message":"回答","mood":"neutral"}',
           "moodは neutral, happy, thinking, encourage, sad, surprised のいずれかです。",
+          `学習者の経験: ${tutorProfile.level}`,
+          `学習者が作りたいもの: ${tutorProfile.goal || "まだ決めていない"}`,
           `現在の目標: ${lesson.goal}`,
           `現在のコード:\n${getSource()}`,
           `診断:\n${elements.diagnosticsPanel.textContent}`,
@@ -1146,7 +1177,8 @@ doubled >> Display.`;
     elements.nextLessonButton.addEventListener("click", () =>
       selectLesson(lessonIndex + 1));
     elements.lessonTitleButton.addEventListener("click", showLessonOverview);
-    elements.welcomeTutorButton.addEventListener("click", welcomeTutor);
+    elements.welcomeTutorButton.addEventListener("click", showTutorProfile);
+    elements.tutorProfileForm.addEventListener("submit", welcomeTutor);
     elements.checkLessonButton.addEventListener("click", startRun);
     elements.hintButton.addEventListener("click", showLessonHint);
     elements.showAnswerButton.addEventListener("click", showLessonAnswer);

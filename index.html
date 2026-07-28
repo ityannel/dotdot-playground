@@ -115,12 +115,33 @@
         <section id="tutorWelcome" class="tutor-welcome" aria-labelledby="tutorWelcomeTitle">
           <span class="welcome-spark spark-one" aria-hidden="true">✦</span>
           <span class="welcome-spark spark-two" aria-hidden="true">●</span>
-          <h2 id="tutorWelcomeTitle">いっしょに<br>PopPopしよう。</h2>
-          <p>コードを書いて、動かして、困ったらすぐ聞けるよ。</p>
-          <button id="welcomeTutorButton" type="button">
-            ロボット君と始める <span aria-hidden="true">→</span>
-          </button>
-          <small>次からは、すぐレッスンを開きます</small>
+          <div id="welcomeIntro" class="welcome-intro">
+            <h2 id="tutorWelcomeTitle">いっしょに<br>PopPopしよう。</h2>
+            <p>コードを書いて、動かして、困ったらすぐ聞けるよ。</p>
+            <button id="welcomeTutorButton" type="button">
+              ロボット君と始める <span aria-hidden="true">→</span>
+            </button>
+            <small>次からは、すぐレッスンを開きます</small>
+          </div>
+
+          <form id="tutorProfileForm" class="tutor-profile" hidden>
+            <h2>あなたに合う<br>問題をつくるね。</h2>
+            <fieldset>
+              <legend>プログラミングはどのくらい？</legend>
+              <div class="level-options">
+                <label><input type="radio" name="tutorLevel" value="はじめて" checked><span>はじめて</span></label>
+                <label><input type="radio" name="tutorLevel" value="少し書ける"><span>少し書ける</span></label>
+                <label><input type="radio" name="tutorLevel" value="慣れている"><span>慣れている</span></label>
+              </div>
+            </fieldset>
+            <label class="profile-goal" for="tutorGoal">
+              <span>何を作ってみたい？</span>
+              <input id="tutorGoal" type="text" maxlength="80" placeholder="ゲーム、占い、データ整理…" required>
+            </label>
+            <button type="submit">
+              わたし向けに始める <span aria-hidden="true">→</span>
+            </button>
+          </form>
         </section>
 
         <div id="tutorSession" class="tutor-session" hidden>
@@ -146,6 +167,10 @@
           <div class="lesson-goal"><span aria-hidden="true">◎</span><span id="lessonGoal">読み込み中…</span></div>
 
           <div id="lessonChat" class="lesson-chat" aria-live="polite" aria-label="ロボット君との会話"></div>
+          <div id="tutorThinking" class="tutor-thinking" role="status" hidden>
+            <span class="thinking-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span>考え中</span>
+          </div>
 
           <div class="lesson-actions">
             <button id="checkLessonButton" class="button lesson-check" type="button" disabled><span aria-hidden="true">✓</span> 答え合わせ</button>
