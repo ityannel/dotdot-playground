@@ -95,7 +95,7 @@ settings, and add this environment variable:
 GEMINI_API_KEY=your-key
 ```
 
-`api/gemini.py` is the Vercel Function used by ロボット君 to generate practice
+`api/gemini.js` is the Vercel Function used by ロボット君 to generate practice
 problems and advice.
 
 GitHub Pages is rebuilt automatically after relevant files are pushed to

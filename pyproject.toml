@@ -42,6 +42,3 @@ version = { attr = "poppop_lang.version.VERSION" }
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
-
-[tool.vercel]
-entrypoint = "api/gemini.py"
