@@ -416,7 +416,7 @@ body.lesson-open .workspace {
 .lesson-panel.welcome-mode .tutor-header {
   position: absolute;
   z-index: 2;
-  top: 22%;
+  top: 18%;
   left: 50%;
   flex-direction: column;
   transform: translate(-50%, -50%);
@@ -424,6 +424,7 @@ body.lesson-open .workspace {
 
 .lesson-panel.welcome-mode .tutor-header > div:last-child { text-align: center; }
 .lesson-panel.welcome-mode .tutor-header strong { font-size: 14px; }
+.lesson-panel.welcome-mode .tutor-online { display: none; }
 .lesson-panel.welcome-mode .robot-avatar { transform: scale(1.75); margin-bottom: 18px; }
 
 .robot-avatar {
