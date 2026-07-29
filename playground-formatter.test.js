@@ -1,8 +1,12 @@
 "use strict";
 
-const assert = require("assert");
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 const { formatDocument: formatInExtension } = require("./vscode-poppop/language-features");
-const { formatDocument: formatInPlayground } = require("./poppop-formatter");
+await import("./poppop-formatter.js");
+const { formatDocument: formatInPlayground } = globalThis.PopPopFormatter;
 
 const cases = [
   "1>>value.\n[1]>>Map(item):\nitem>>Display.\n..",

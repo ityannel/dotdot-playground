@@ -1000,6 +1000,21 @@ body.lesson-open .workspace {
   background: rgb(97 214 144 / 9%);
 }
 
+.chat-message.streaming .chat-bubble::after {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 1em;
+  margin-left: 3px;
+  background: var(--pink);
+  vertical-align: -2px;
+  animation: stream-caret .7s steps(1) infinite;
+}
+
+@keyframes stream-caret {
+  50% { opacity: 0; }
+}
+
 .chat-context {
   display: block;
   margin-bottom: 3px;

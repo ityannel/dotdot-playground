@@ -882,6 +882,55 @@ doubled >> Display.`;
     });
   }
 
+  function beginStreamingRobotMessage() {
+    if (!currentChatSection) renderTutorConversation();
+    const lesson = currentLesson();
+    const entry = {
+      sender: "robot",
+      style: "streaming",
+      text: "…",
+      lessonId: lesson?.id || "",
+      lessonTitle: lesson?.title || "",
+      at: Date.now(),
+    };
+    const element = drawChatMessage(entry, currentChatSection);
+    const bubble = element.querySelector(".chat-bubble");
+    element.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    return { element, bubble, entry };
+  }
+
+  function updateStreamingRobotMessage(streamMessage, text) {
+    const value = String(text || "").trimStart();
+    if (!value || !streamMessage?.bubble) return;
+    streamMessage.bubble.textContent = value;
+    streamMessage.element.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function finishStreamingRobotMessage(
+    streamMessage,
+    text,
+    success = false,
+    persist = true,
+  ) {
+    if (!streamMessage?.element) return;
+    const value = String(text || "").trim();
+    streamMessage.bubble.textContent = value;
+    streamMessage.element.classList.remove("streaming");
+    streamMessage.element.classList.toggle("success", success);
+    if (!persist) return;
+    streamMessage.entry.text = value;
+    streamMessage.entry.style = success ? "success" : "";
+    tutorLearning.conversation = [
+      ...(tutorLearning.conversation || []),
+      streamMessage.entry,
+    ].slice(-40);
+    saveTutorLearning();
+  }
+
+  function discardStreamingRobotMessage(streamMessage) {
+    streamMessage?.element?.remove();
+  }
+
   function robotSpeak(text, success = false) {
     addChatMessage(text, "robot", success ? "success" : "");
   }
@@ -1312,25 +1361,140 @@ doubled >> Display.`;
     throw error;
   }
 
-  function callGemini(promptText, jsonMode = false, task = "chat") {
+  async function callGeminiStreamOnce(
+    promptText,
+    jsonMode = false,
+    task = "chat",
+    onText = () => {},
+  ) {
+    const proxyResponse = await fetch("/api/gemini", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: promptText,
+        json: jsonMode,
+        task,
+        stream: true,
+      }),
+    }).catch(() => null);
+    if (!proxyResponse?.ok) {
+      const detail = await proxyResponse?.json().catch(() => ({}));
+      const error = new Error(detail?.error || "Gemini先生に接続できませんでした");
+      error.status = proxyResponse?.status || 0;
+      error.retryAfter = Number(proxyResponse?.headers.get("retry-after")) || 0;
+      throw error;
+    }
+
+    const reader = proxyResponse.body?.getReader();
+    if (!reader) throw new Error("ストリーミング応答を受信できませんでした");
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullText = "";
+
+    const consumeEvent = (eventText) => {
+      const data = eventText
+        .split(/\r?\n/)
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).trimStart())
+        .join("");
+      if (!data || data === "[DONE]") return;
+      const payload = JSON.parse(data);
+      const delta = (payload.candidates?.[0]?.content?.parts || [])
+        .map((part) => part.text || "")
+        .join("");
+      if (!delta) return;
+      fullText += delta;
+      onText(fullText);
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const events = buffer.split(/\r?\n\r?\n/);
+      buffer = events.pop() || "";
+      events.forEach(consumeEvent);
+      if (done) break;
+    }
+    if (buffer.trim()) consumeEvent(buffer);
+    return fullText.trim();
+  }
+
+  function queueGeminiRequest(runOnce) {
     const run = async () => {
       const minimumInterval = 6500;
       const remaining = minimumInterval - (Date.now() - lastGeminiRequestAt);
       if (remaining > 0) await wait(remaining);
       lastGeminiRequestAt = Date.now();
       try {
-        return await callGeminiOnce(promptText, jsonMode, task);
+        return await runOnce();
       } catch (error) {
         if (error.status !== 429) throw error;
         const retryDelay = Math.max(12000, error.retryAfter * 1000);
         await wait(retryDelay);
         lastGeminiRequestAt = Date.now();
-        return callGeminiOnce(promptText, jsonMode, task);
+        return runOnce();
       }
     };
     const request = geminiRequestQueue.then(run, run);
     geminiRequestQueue = request.catch(() => null);
     return request;
+  }
+
+  function callGemini(promptText, jsonMode = false, task = "chat") {
+    return queueGeminiRequest(
+      () => callGeminiOnce(promptText, jsonMode, task),
+    );
+  }
+
+  function callGeminiStream(
+    promptText,
+    jsonMode = false,
+    task = "chat",
+    onText = () => {},
+  ) {
+    return queueGeminiRequest(
+      () => callGeminiStreamOnce(promptText, jsonMode, task, onText),
+    );
+  }
+
+  function extractPartialJsonString(text, key) {
+    const source = String(text || "");
+    const keyIndex = source.indexOf(`"${key}"`);
+    if (keyIndex < 0) return "";
+    const colonIndex = source.indexOf(":", keyIndex + key.length + 2);
+    const quoteIndex = source.indexOf('"', colonIndex + 1);
+    if (colonIndex < 0 || quoteIndex < 0) return "";
+    let result = "";
+    for (let index = quoteIndex + 1; index < source.length; index += 1) {
+      const character = source[index];
+      if (character === '"') break;
+      if (character !== "\\") {
+        result += character;
+        continue;
+      }
+      index += 1;
+      if (index >= source.length) break;
+      const escaped = source[index];
+      const escapes = {
+        '"': '"',
+        "\\": "\\",
+        "/": "/",
+        b: "\b",
+        f: "\f",
+        n: "\n",
+        r: "\r",
+        t: "\t",
+      };
+      if (escaped === "u") {
+        const hex = source.slice(index + 1, index + 5);
+        if (!/^[0-9a-f]{4}$/i.test(hex)) break;
+        result += String.fromCharCode(Number.parseInt(hex, 16));
+        index += 4;
+      } else {
+        result += escapes[escaped] ?? escaped;
+      }
+    }
+    return result;
   }
 
   function parseJsonText(text) {
@@ -1356,8 +1520,9 @@ doubled >> Display.`;
     const requestId = ++tutorRequestSequence;
     setRobotMood("thinking");
     setTutorBusy(true);
+    const streamMessage = beginStreamingRobotMessage();
     try {
-      const text = await callGemini(
+      const text = await callGeminiStream(
         [
           "あなたはPopPop Playgroundに住む、親しみやすいロボット先生です。",
           "幼すぎない、短く自然な日本語で話します。1回の発言は原則80文字以内です。",
@@ -1378,18 +1543,36 @@ doubled >> Display.`;
           extra,
         ].filter(Boolean).join("\n\n"),
         true,
+        "chat",
+        (partialText) => {
+          if (requestId !== tutorRequestSequence) return;
+          updateStreamingRobotMessage(
+            streamMessage,
+            extractPartialJsonString(partialText, "message").slice(0, 240),
+          );
+        },
       );
-      if (requestId !== tutorRequestSequence) return;
+      if (requestId !== tutorRequestSequence) {
+        discardStreamingRobotMessage(streamMessage);
+        return;
+      }
       const data = parseJsonText(text);
       const moods = new Set(["neutral", "happy", "thinking", "encourage", "sad", "surprised"]);
       const mood = moods.has(data?.mood) ? data.mood : success ? "happy" : "neutral";
       const message = String(data?.message || fallback).trim().slice(0, 240);
       setRobotMood(mood, mood === "thinking" ? 1800 : 3200);
-      robotSpeak(message, success || mood === "happy");
+      finishStreamingRobotMessage(
+        streamMessage,
+        message,
+        success || mood === "happy",
+      );
     } catch {
-      if (requestId !== tutorRequestSequence) return;
+      if (requestId !== tutorRequestSequence) {
+        discardStreamingRobotMessage(streamMessage);
+        return;
+      }
       setRobotMood(success ? "happy" : "encourage", 2400);
-      robotSpeak(fallback, success);
+      finishStreamingRobotMessage(streamMessage, fallback, success);
     } finally {
       if (requestId === tutorRequestSequence) setTutorBusy(false);
     }
@@ -1401,8 +1584,9 @@ doubled >> Display.`;
     const requestId = ++tutorRequestSequence;
     setRobotMood("thinking");
     setTutorBusy(true);
+    const streamMessage = beginStreamingRobotMessage();
     try {
-      const text = await callGemini(
+      const text = await callGeminiStream(
         [
           "あなたはPopPop言語の練習問題を採点する先生です。",
           "完成例との文字列一致ではなく、目標を達成しているかで判定してください。",
@@ -1415,8 +1599,19 @@ doubled >> Display.`;
           `実行結果: ${JSON.stringify(result)}`,
         ].join("\n\n"),
         true,
+        "chat",
+        (partialText) => {
+          if (requestId !== tutorRequestSequence) return;
+          updateStreamingRobotMessage(
+            streamMessage,
+            extractPartialJsonString(partialText, "message").slice(0, 320),
+          );
+        },
       );
-      if (requestId !== tutorRequestSequence) return;
+      if (requestId !== tutorRequestSequence) {
+        discardStreamingRobotMessage(streamMessage);
+        return;
+      }
       const data = parseJsonText(text);
       const passed = data?.passed === true;
       if (passed) {
@@ -1441,20 +1636,28 @@ doubled >> Display.`;
         ? data.mood
         : passed ? "happy" : "encourage";
       setRobotMood(mood, 3200);
-      robotSpeak(
+      finishStreamingRobotMessage(
+        streamMessage,
         String(data?.message || (passed ? "目標達成！ よくできました。" : "あと少し。出力を見直してみよう。")).slice(0, 240),
         passed,
       );
     } catch {
+      if (requestId !== tutorRequestSequence) {
+        discardStreamingRobotMessage(streamMessage);
+        return;
+      }
       setRobotMood("encourage", 2400);
-      robotSpeak("実行できたね。出力と目標が同じになっているか、見比べてみよう。");
+      finishStreamingRobotMessage(
+        streamMessage,
+        "実行できたね。出力と目標が同じになっているか、見比べてみよう。",
+      );
     } finally {
       if (requestId === tutorRequestSequence) setTutorBusy(false);
     }
   }
 
-  async function generateOpenEndedLesson(repairNote = "") {
-    const text = await callGemini(
+  async function generateOpenEndedLesson(repairNote = "", onCode = () => {}) {
+    const text = await callGeminiStream(
         [
           "あなたはPopPop言語のやさしい先生です。",
           "基礎8問を終えた学習者向けの、少し発展的な練習問題を1つ作ってください。",
@@ -1490,6 +1693,10 @@ doubled >> Display.`;
         ].filter(Boolean).join("\n"),
         true,
         "lesson",
+        (partialText) => {
+          const starter = extractPartialJsonString(partialText, "starter");
+          if (starter) onCode(starter);
+        },
       );
     const data = parseJsonText(text);
     if (!data?.starter || !data?.solution || !data?.goal) {
@@ -1552,7 +1759,12 @@ doubled >> Display.`;
   }
 
   async function createAiLesson() {
+    const sourceBeforeGeneration = getSource();
+    const editorWasReadOnly = editor?.getReadOnly?.() || false;
     elements.advanceLessonButton.hidden = true;
+    elements.runButton.disabled = true;
+    if (editor) editor.setReadOnly(true);
+    else elements.editorFallback.readOnly = true;
     setRobotMood("thinking");
     setTutorBusy(true);
     try {
@@ -1562,6 +1774,9 @@ doubled >> Display.`;
         try {
           const generated = await generateOpenEndedLesson(
             attempt > 0 ? String(lastError?.message || "") : "",
+            (partialStarter) => {
+              setSource(partialStarter, false);
+            },
           );
           data = generated.data;
           data.starterIssue = generated.starterIssue;
@@ -1600,10 +1815,14 @@ doubled >> Display.`;
       });
     } catch (error) {
       console.warn("AI lesson generation failed", error);
+      setSource(sourceBeforeGeneration, false);
       setRobotMood("encourage", 1800);
       robotSpeak(aiLessonFailureMessage(error));
       renderLesson();
     } finally {
+      if (editor) editor.setReadOnly(editorWasReadOnly);
+      else elements.editorFallback.readOnly = false;
+      elements.runButton.disabled = !runtimeReady || running;
       setTutorBusy(false);
     }
   }
@@ -1693,8 +1912,9 @@ doubled >> Display.`;
     const requestId = ++tutorRequestSequence;
     setRobotMood("thinking");
     setTutorBusy(true);
+    const streamMessage = beginStreamingRobotMessage();
     try {
-      const text = await callGemini(
+      const text = await callGeminiStream(
         [
           "あなたはPopPop Playgroundに住むロボット先生です。",
           "短く自然な日本語で、質問に直接答えてください。",
@@ -1713,17 +1933,37 @@ doubled >> Display.`;
           `質問: ${question}`,
         ].join("\n\n"),
         true,
+        "chat",
+        (partialText) => {
+          if (requestId !== tutorRequestSequence) return;
+          updateStreamingRobotMessage(
+            streamMessage,
+            extractPartialJsonString(partialText, "message").slice(0, 320),
+          );
+        },
       );
-      if (requestId !== tutorRequestSequence) return;
+      if (requestId !== tutorRequestSequence) {
+        discardStreamingRobotMessage(streamMessage);
+        return;
+      }
       const data = parseJsonText(text);
       const moods = ["neutral", "happy", "thinking", "encourage", "sad", "surprised"];
       const mood = moods.includes(data?.mood) ? data.mood : "neutral";
       setRobotMood(mood, 3000);
-      robotSpeak(String(data?.message || "もう少し詳しく教えてくれる？").slice(0, 320));
+      finishStreamingRobotMessage(
+        streamMessage,
+        String(data?.message || "もう少し詳しく教えてくれる？").slice(0, 320),
+      );
     } catch {
-      if (requestId !== tutorRequestSequence) return;
+      if (requestId !== tutorRequestSequence) {
+        discardStreamingRobotMessage(streamMessage);
+        return;
+      }
       setRobotMood("sad", 2400);
-      robotSpeak("うまく考えを届けられなかったよ。少し待って、もう一度聞いてみてね。");
+      finishStreamingRobotMessage(
+        streamMessage,
+        "うまく考えを届けられなかったよ。少し待って、もう一度聞いてみてね。",
+      );
     } finally {
       if (requestId === tutorRequestSequence) setTutorBusy(false);
     }

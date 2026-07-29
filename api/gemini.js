@@ -30,6 +30,7 @@ export default async function handler(request, response) {
 
   const prompt = String(request.body?.prompt || "").trim();
   const task = request.body?.task === "lesson" ? "lesson" : "chat";
+  const stream = request.body?.stream === true;
   const model = task === "lesson" ? LESSON_MODEL : CHAT_MODEL;
   if (!prompt) {
     sendJson(response, 400, { error: "prompt is required" });
@@ -77,7 +78,9 @@ export default async function handler(request, response) {
 
   const requestModel = (candidateModel) =>
     fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${candidateModel}:generateContent`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${candidateModel}:${
+        stream ? "streamGenerateContent?alt=sse" : "generateContent"
+      }`,
       {
         method: "POST",
         headers: {
@@ -93,8 +96,8 @@ export default async function handler(request, response) {
     geminiResponse = await requestModel(CHAT_MODEL);
   }
 
-  const geminiPayload = await geminiResponse.json().catch(() => ({}));
   if (!geminiResponse.ok) {
+    const geminiPayload = await geminiResponse.json().catch(() => ({}));
     const retryAfter = geminiResponse.headers.get("retry-after");
     if (retryAfter) response.setHeader("Retry-After", retryAfter);
     sendJson(response, geminiResponse.status, {
@@ -103,6 +106,27 @@ export default async function handler(request, response) {
     return;
   }
 
+  if (stream) {
+    response.status(200);
+    response.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+    response.setHeader("Cache-Control", "no-cache, no-transform");
+    response.setHeader("X-Accel-Buffering", "no");
+    response.flushHeaders?.();
+    const reader = geminiResponse.body?.getReader();
+    if (!reader) {
+      response.end();
+      return;
+    }
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      response.write(Buffer.from(value));
+    }
+    response.end();
+    return;
+  }
+
+  const geminiPayload = await geminiResponse.json().catch(() => ({}));
   const text = (geminiPayload.candidates?.[0]?.content?.parts || [])
     .map((part) => part.text || "")
     .join("")

@@ -12,78 +12,78 @@ from typing import Any
 LESSONS = (
     {
         "id": "pipeline",
-        "title": "Hello, World!",
+        "title": "はじめての表示",
         "badge": "01",
-        "intro": "最初の一問です。文字列を Display へ流して、画面に表示してみよう。",
-        "goal": '"Hello, World!" と表示してください。',
+        "intro": "まずは短い文字を画面に出して、PopPopの流れを見てみよう。",
+        "goal": '表示する文字を "Hello, World!" に変えてください。',
         "starter": '"Hello" >> Display.',
         "solution": '"Hello, World!" >> Display.',
         "hints": (
-            "`>> Display.` の左側にある文字列が、そのまま出力されます。",
-            '文字列を `"Hello, World!"` に書き換えてみましょう。',
+            "`>> Display.` の左にある値が、出力欄に表示されます。",
+            '`"Hello"` を `"Hello, World!"` に書き換えてみよう。',
         ),
         "expected": "Hello, World!",
         "required": (">>", "Display", '"Hello, World!"'),
-        "success": "Hello, World! PopPopの最初のプログラムが動きました。",
+        "success": "できました！ PopPopの最初のプログラムが動きました。",
     },
     {
         "id": "map",
-        "title": "Mapで全員を変換",
+        "title": "数字を2倍にしよう",
         "badge": "02",
-        "intro": "Map は List の各要素に同じ処理を行い、新しい List を返すよ。",
-        "goal": "各要素を2倍にして、[2, 4, 6] を作ってください。",
+        "intro": "Mapは、リストの値を一つずつ同じルールで作り替えるよ。",
+        "goal": "[1, 2, 3] の数字をそれぞれ2倍にしてください。",
         "starter": (
-            "[1, 2, 3] >> Map(value):\n"
-            "    value + 1.\n"
+            "[1, 2, 3] >> Map(number):\n"
+            "    number + 1.\n"
             ".. >> doubled.\n\n"
             "doubled >> Display."
         ),
         "solution": (
-            "[1, 2, 3] >> Map(value):\n"
-            "    value * 2.\n"
+            "[1, 2, 3] >> Map(number):\n"
+            "    number * 2.\n"
             ".. >> doubled.\n\n"
             "doubled >> Display."
         ),
         "hints": (
-            "ブロック内の value は、List から取り出された現在の要素です。",
-            "`value + 1` を `value * 2` に変えてみましょう。",
+            "`number`には、1、2、3が順番に入ります。",
+            "`number + 1` を `number * 2` に変えてみよう。",
         ),
         "expected": [2, 4, 6],
         "required": ("Map", "*", "Display"),
-        "success": "大成功！ Map は元の List を変えず、新しい List を作ります。",
+        "success": "きれいに2倍になりました！ Mapは新しいリストを作ります。",
     },
     {
         "id": "filter",
-        "title": "Filterで選び出す",
+        "title": "偶数だけ集めよう",
         "badge": "03",
-        "intro": "Filter は、条件が true になった要素だけを残す処理だよ。",
-        "goal": "[1, 2, 3, 4] から偶数だけを残してください。",
+        "intro": "Filterは、条件に合う値だけを新しいリストへ集めるよ。",
+        "goal": "[1, 2, 3, 4] から2と4だけを残してください。",
         "starter": (
-            "[1, 2, 3, 4] >> Filter(value):\n"
-            "    value > 2.\n"
+            "[1, 2, 3, 4] >> Filter(number):\n"
+            "    number > 2.\n"
             ".. >> evens.\n\n"
             "evens >> Display."
         ),
         "solution": (
-            "[1, 2, 3, 4] >> Filter(value):\n"
-            "    value % 2 == 0.\n"
+            "[1, 2, 3, 4] >> Filter(number):\n"
+            "    number % 2 == 0.\n"
             ".. >> evens.\n\n"
             "evens >> Display."
         ),
         "hints": (
             "偶数は、2で割った余りが0になる数です。",
-            "条件を `value % 2 == 0` にしてみましょう。",
+            "条件を `number % 2 == 0` にしてみよう。",
         ),
         "expected": [2, 4],
         "required": ("Filter", "%", "==", "Display"),
-        "success": "正解！ Filter のブロックは必ず Boolean を返します。",
+        "success": "2と4を集められました！ 条件がtrueの値だけが残ります。",
     },
     {
         "id": "reduce",
-        "title": "Reduceでまとめる",
+        "title": "合計を出そう",
         "badge": "04",
-        "intro": "Reduce の現在値は [これまでの結果, 次の要素] という List だよ。",
-        "goal": "四つの数値を足し、合計10を作ってください。",
+        "intro": "Reduceは、これまでの結果と次の値を使って一つの答えを作るよ。",
+        "goal": "[1, 2, 3, 4] を順番に足して、10にしてください。",
         "starter": (
             "[1, 2, 3, 4] >> Reduce(state):\n"
             "    state[0] * state[1].\n"
@@ -97,19 +97,19 @@ LESSONS = (
             "total >> Display."
         ),
         "hints": (
-            "`state[0]` が accumulator、`state[1]` が次の要素です。",
-            "二つを `+` で足してください。",
+            "`state[0]`はこれまでの結果、`state[1]`は次の数字です。",
+            "`state[0] * state[1]` の `*` を `+` に変えてみよう。",
         ),
         "expected": 10,
         "required": ("Reduce", "state[0]", "state[1]", "+", "Display"),
-        "success": "合計できました！ 最初の要素が最初の accumulator になります。",
+        "success": "合計は10です！ Reduceで複数の値を一つにまとめられました。",
     },
     {
         "id": "update",
-        "title": "辞書を非破壊更新",
+        "title": "プロフィールを更新しよう",
         "badge": "05",
-        "intro": "Update は元の Dict を残したまま、更新後の Dict を作るよ。",
-        "goal": "score を15にし、active を true にしてください。",
+        "intro": "Updateは、元の辞書を変えずに新しい内容の辞書を作るよ。",
+        "goal": "scoreを15にして、activeにtrueを追加してください。",
         "starter": (
             '{"name": "Ada", "score": 10} >> Update(user):\n'
             "    11 >> user::score.\n"
@@ -124,19 +124,19 @@ LESSONS = (
             "updated >> Display."
         ),
         "hints": (
-            "更新は `新しい値 >> user::フィールド名.` の向きです。",
-            "`15 >> user::score.` と `true >> user::active.` を並べましょう。",
+            "書き方は `新しい値 >> user::項目名.` の順番です。",
+            "`15 >> user::score.` の次に、activeの行も追加してみよう。",
         ),
         "expected": {"name": "Ada", "score": 15, "active": True},
         "required": ("Update", "::score", "::active", "Display"),
-        "success": "できました！ 元の Dict は変更されず、updated が新しく作られます。",
+        "success": "プロフィールを更新できました！ 元の辞書はそのまま残ります。",
     },
     {
         "id": "check",
-        "title": "Checkで道を選ぶ",
+        "title": "数字を分類しよう",
         "badge": "06",
-        "intro": "Check は上から条件を調べ、最初に一致した道だけを実行するよ。",
-        "goal": "2を small に分類してください。else は必ず残します。",
+        "intro": "Checkは、条件を上から調べて最初に合った答えを選ぶよ。",
+        "goal": "数字の2を、文字列のsmallに分類してください。",
         "starter": (
             "2 >> Check(value):\n"
             "    is 0:\n"
@@ -158,19 +158,19 @@ LESSONS = (
             "label >> Display."
         ),
         "hints": (
-            "`is 1 or 2 or 3:` で候補のどれかに一致するか調べられます。",
-            "新しい is 分岐の中から文字列 `\"small\"` を返してください。",
+            "`is 1 or 2 or 3:` なら、1、2、3のどれかに合うか調べられます。",
+            "新しいisの中に文字列の`\"small\"`を書いてみよう。",
         ),
         "expected": "small",
         "required": ("Check", "is 1 or 2 or 3", "else", "Display"),
-        "success": "分岐成功！ 一致しなかった場合のために else は必須です。",
+        "success": "2をsmallに分類できました！ どれにも合わない値はelseへ進みます。",
     },
     {
         "id": "function",
-        "title": "自分の関数を作る",
+        "title": "足し算関数を作ろう",
         "badge": "07",
-        "intro": "`new` を使うと、何度でも使える自分の処理を定義できるよ。",
-        "goal": "AddTwo が二つの入力を足して30を返すようにしてください。",
+        "intro": "`new`を使って、二つの数字を足す自分の関数を作ってみよう。",
+        "goal": "AddTwoで10と20を足し、30を作ってください。",
         "starter": (
             "(left, right) >> new AddTwo:\n"
             "    left - right.\n"
@@ -186,19 +186,19 @@ LESSONS = (
             "total >> Display."
         ),
         "hints": (
-            "関数の最後の値は暗黙に関数結果になります。",
-            "`left - right` の演算子を `+` に変えてください。",
+            "関数の最後にある値が、その関数の答えになります。",
+            "`left - right` の `-` を `+` に変えてみよう。",
         ),
         "expected": 30,
         "required": ("new AddTwo", "left + right", "Display"),
-        "success": "関数が完成！ 最後の値を返すだけなら Return は省略できます。",
+        "success": "足し算関数の完成です！ 作った関数は何度でも使えます。",
     },
     {
         "id": "loop",
-        "title": "Loopを止める",
+        "title": "5まで数えて止めよう",
         "badge": "08",
-        "intro": "Loop は状態を繰り返し渡し、Break を受け取るまで進み続けるよ。",
-        "goal": "0から1ずつ増やし、5になったら止めてください。",
+        "intro": "Loopで数字を一つずつ増やし、Breakで安全に止めてみよう。",
+        "goal": "0から始めて、5になったところで止めてください。",
         "starter": (
             "0 >> Loop(state):\n"
             "    state >> Check(value):\n"
@@ -222,12 +222,12 @@ LESSONS = (
             "result >> Display."
         ),
         "hints": (
-            "Break に渡した値が Loop 全体の結果になります。",
-            "停止条件の3を5に変えてください。止まらなくなったら上の「停止」を押せます。",
+            "Breakへ流した値が、Loop全体の答えになります。",
+            "止まる条件の3を5に変えてみよう。困ったら上の「停止」を押せます。",
         ),
         "expected": 5,
         "required": ("Loop", "Break", "value >= 5", "Display"),
-        "success": "全レッスン修了！ Loop と Break を安全に扱えました。",
+        "success": "5でぴったり止まりました！ 全8レッスン修了です。",
     },
 )
 

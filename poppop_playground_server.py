@@ -41,6 +41,7 @@ class PlaygroundHandler(SimpleHTTPRequestHandler):
             request = json.loads(self.rfile.read(length).decode("utf-8"))
             prompt = str(request.get("prompt", "")).strip()
             json_mode = bool(request.get("json"))
+            stream = request.get("stream") is True
             task = "lesson" if request.get("task") == "lesson" else "chat"
             model = LESSON_MODEL if task == "lesson" else CHAT_MODEL
             if not prompt:
@@ -106,7 +107,12 @@ class PlaygroundHandler(SimpleHTTPRequestHandler):
             for index, candidate_model in enumerate(candidates):
                 url = (
                     "https://generativelanguage.googleapis.com/v1beta/models/"
-                    f"{candidate_model}:generateContent"
+                    f"{candidate_model}:"
+                    + (
+                        "streamGenerateContent?alt=sse"
+                        if stream
+                        else "generateContent"
+                    )
                 )
                 gemini_request = urllib.request.Request(
                     url,
@@ -121,7 +127,21 @@ class PlaygroundHandler(SimpleHTTPRequestHandler):
                     with urllib.request.urlopen(
                         gemini_request, timeout=30
                     ) as response:
-                        gemini_payload = json.loads(response.read().decode("utf-8"))
+                        if stream:
+                            self.send_response(200)
+                            self.send_header(
+                                "Content-Type", "text/event-stream; charset=utf-8"
+                            )
+                            self.send_header("Cache-Control", "no-cache")
+                            self.send_header("X-Accel-Buffering", "no")
+                            self.end_headers()
+                            while chunk := response.read1(4096):
+                                self.wfile.write(chunk)
+                                self.wfile.flush()
+                            return
+                        gemini_payload = json.loads(
+                            response.read().decode("utf-8")
+                        )
                     break
                 except urllib.error.HTTPError as exc:
                     if exc.code == 429 and index < len(candidates) - 1:
