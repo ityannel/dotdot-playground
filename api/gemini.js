@@ -1,4 +1,10 @@
-const MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+const CHAT_MODEL =
+  process.env.GEMINI_CHAT_MODEL ||
+  process.env.GEMINI_MODEL ||
+  "gemini-3.5-flash-lite";
+const LESSON_MODEL =
+  process.env.GEMINI_LESSON_MODEL ||
+  "gemini-3.6-flash";
 
 function sendJson(response, status, payload) {
   response.status(status).json(payload);
@@ -23,6 +29,9 @@ export default async function handler(request, response) {
   }
 
   const prompt = String(request.body?.prompt || "").trim();
+  const task = request.body?.task === "lesson" ? "lesson" : "chat";
+  const stream = request.body?.stream === true;
+  const model = task === "lesson" ? LESSON_MODEL : CHAT_MODEL;
   if (!prompt) {
     sendJson(response, 400, { error: "prompt is required" });
     return;
@@ -34,32 +43,90 @@ export default async function handler(request, response) {
 
   const payload = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: { maxOutputTokens: 1200 },
+    generationConfig: {
+      maxOutputTokens: task === "lesson" ? 4096 : 1200,
+    },
   };
-  if (request.body?.json) {
+  if (task === "lesson") {
+    payload.generationConfig.thinkingConfig = { thinkingLevel: "low" };
+    payload.generationConfig.responseMimeType = "application/json";
+    payload.generationConfig.responseJsonSchema = {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        intro: { type: "string" },
+        goal: { type: "string" },
+        starter: { type: "string" },
+        solution: { type: "string" },
+        hints: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 2,
+          maxItems: 2,
+        },
+        mood: {
+          type: "string",
+          enum: ["neutral", "happy", "thinking", "encourage", "surprised"],
+        },
+      },
+      required: ["title", "intro", "goal", "starter", "solution", "hints", "mood"],
+      additionalProperties: false,
+    };
+  } else if (request.body?.json) {
     payload.generationConfig.responseMimeType = "application/json";
   }
 
-  const geminiResponse = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
+  const requestModel = (candidateModel) =>
+    fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${candidateModel}:${
+        stream ? "streamGenerateContent?alt=sse" : "generateContent"
+      }`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify(payload),
       },
-      body: JSON.stringify(payload),
-    },
-  );
+    );
 
-  const geminiPayload = await geminiResponse.json().catch(() => ({}));
+  let geminiResponse = await requestModel(model);
+  if (task === "lesson" && model !== CHAT_MODEL && geminiResponse.status === 429) {
+    geminiResponse = await requestModel(CHAT_MODEL);
+  }
+
   if (!geminiResponse.ok) {
+    const geminiPayload = await geminiResponse.json().catch(() => ({}));
+    const retryAfter = geminiResponse.headers.get("retry-after");
+    if (retryAfter) response.setHeader("Retry-After", retryAfter);
     sendJson(response, geminiResponse.status, {
       error: geminiPayload.error?.message || "Gemini API request failed",
     });
     return;
   }
 
+  if (stream) {
+    response.status(200);
+    response.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+    response.setHeader("Cache-Control", "no-cache, no-transform");
+    response.setHeader("X-Accel-Buffering", "no");
+    response.flushHeaders?.();
+    const reader = geminiResponse.body?.getReader();
+    if (!reader) {
+      response.end();
+      return;
+    }
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      response.write(Buffer.from(value));
+    }
+    response.end();
+    return;
+  }
+
+  const geminiPayload = await geminiResponse.json().catch(() => ({}));
   const text = (geminiPayload.candidates?.[0]?.content?.parts || [])
     .map((part) => part.text || "")
     .join("")

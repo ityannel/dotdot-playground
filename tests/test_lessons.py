@@ -26,8 +26,21 @@ def test_public_lessons_do_not_duplicate_validation_values():
 
 
 def test_every_lesson_displays_its_final_value():
-    assert LESSONS[0]["title"] == "Hello, World!"
+    assert LESSONS[0]["title"] == "はじめての表示"
     for lesson in LESSONS:
         assert lesson["starter"].rstrip().endswith(">> Display.")
         assert lesson["solution"].rstrip().endswith(">> Display.")
         assert "Display" in lesson["required"]
+
+
+def test_lesson_titles_are_short_friendly_and_unique():
+    titles = [lesson["title"] for lesson in LESSONS]
+    banned_phrases = ("全員を変換", "非破壊更新", "道を選ぶ")
+
+    assert len(titles) == len(set(titles))
+    assert all(len(title) <= 18 for title in titles)
+    assert all(
+        phrase not in title
+        for title in titles
+        for phrase in banned_phrases
+    )
