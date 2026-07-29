@@ -1,7 +1,9 @@
 "use strict";
 
-const assert = require("node:assert/strict");
-const { errorLine, localizeError } = require("./poppop-localization.js");
+import assert from "node:assert/strict";
+
+await import("./poppop-localization.js");
+const { errorLine, localizeError } = globalThis.PopPopLocalization;
 
 assert.equal(
   localizeError("NameError: Variable 'missing' is not defined."),
