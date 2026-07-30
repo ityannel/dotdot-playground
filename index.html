@@ -39,9 +39,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=LINE+Seed+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="playground.css">
+  <link rel="stylesheet" href="poppop-visual.css">
 </head>
 <body>
   <a class="skip-link" href="#editor">エディターへ移動</a>
+  <div id="appStatus" class="sr-only" role="status" aria-live="polite"></div>
 
   <header class="app-header">
     <div class="brand">
@@ -55,41 +57,64 @@
   </header>
 
   <nav class="toolbar" aria-label="実行と編集">
-    <button id="runButton" class="button primary" type="button" disabled>
-      <span aria-hidden="true">▶</span> 実行
-      <kbd>Ctrl ↵</kbd>
-    </button>
-    <button id="stopButton" class="button danger" type="button" disabled>
-      <span aria-hidden="true">■</span> 停止
-    </button>
-    <span class="toolbar-separator" aria-hidden="true"></span>
-    <button id="formatButton" class="button format-button" type="button" title="VS Codeと同じ規則で整形（Shift+Alt+F）">
-      <span aria-hidden="true">✦</span> コード整形
-    </button>
-    <button id="copyCodeButton" class="button" type="button"><span aria-hidden="true">⧉</span> コピー</button>
-    <button id="downloadButton" class="button" type="button"><span aria-hidden="true">↓</span> 保存</button>
-    <label class="button file-button">
-      <span aria-hidden="true">↑</span> 読み込む
-      <input id="fileInput" type="file" accept=".pop,.poppop,text/plain">
-    </label>
-    <button id="shareButton" class="button" type="button"><span aria-hidden="true">↗</span> 共有</button>
+    <div class="toolbar-primary">
+      <button id="runButton" class="button primary" type="button" disabled>
+        <span aria-hidden="true">▶</span> 実行
+        <kbd>Ctrl ↵</kbd>
+      </button>
+      <button id="stopButton" class="button danger" type="button" disabled>
+        <span aria-hidden="true">■</span> 停止
+      </button>
+      <button id="formatButton" class="button format-button" type="button" title="VS Codeと同じ規則で整形（Shift+Alt+F）">
+        <span aria-hidden="true">✦</span> 整形
+      </button>
+    </div>
+    <span id="runFeedback" class="run-feedback" aria-hidden="true"></span>
     <span class="toolbar-spacer"></span>
-    <button id="decreaseFontButton" class="icon-button" type="button" aria-label="文字を小さく">A−</button>
-    <button id="increaseFontButton" class="icon-button" type="button" aria-label="文字を大きく">A＋</button>
-    <button id="themeButton" class="icon-button" type="button" aria-label="配色を切り替える">☼</button>
+    <div class="toolbar-view-actions" aria-label="画面の表示">
+      <button id="toggleSidebarButton" class="icon-button view-button" type="button" aria-label="サンプル棚を閉じる" aria-pressed="false" title="サンプル棚">◧</button>
+      <button id="toggleResultButton" class="icon-button view-button" type="button" aria-label="結果棚を閉じる" aria-pressed="false" title="結果棚">◨</button>
+    </div>
+    <details id="moreTools" class="tool-menu">
+      <summary aria-label="その他の操作"><span aria-hidden="true">•••</span><span class="tool-menu-label">その他</span></summary>
+      <div class="tool-menu-popover">
+        <button id="copyCodeButton" class="button" type="button"><span aria-hidden="true">⧉</span> コピー</button>
+        <button id="downloadButton" class="button" type="button"><span aria-hidden="true">↓</span> 保存</button>
+        <button id="loadFileButton" class="button" type="button"><span aria-hidden="true">↑</span> 読み込む</button>
+        <input id="fileInput" class="sr-only" type="file" accept=".pop,.poppop,text/plain">
+        <button id="shareButton" class="button" type="button"><span aria-hidden="true">↗</span> 共有</button>
+        <span class="tool-menu-rule" aria-hidden="true"></span>
+        <span class="tool-menu-heading">画面レイアウト</span>
+        <div class="layout-presets" role="group" aria-label="画面レイアウト">
+          <button class="layout-preset" type="button" data-layout-preset="focus">
+            <span aria-hidden="true">▣</span><span>集中</span>
+          </button>
+          <button class="layout-preset" type="button" data-layout-preset="try">
+            <span aria-hidden="true">◫</span><span>試す</span>
+          </button>
+          <button class="layout-preset" type="button" data-layout-preset="learn">
+            <span aria-hidden="true">◧</span><span>学ぶ</span>
+          </button>
+        </div>
+        <span class="tool-menu-rule" aria-hidden="true"></span>
+        <button id="decreaseFontButton" class="button" type="button"><span aria-hidden="true">A−</span> 文字を小さく</button>
+        <button id="increaseFontButton" class="button" type="button"><span aria-hidden="true">A＋</span> 文字を大きく</button>
+        <button id="themeButton" class="button" type="button" aria-label="配色を切り替える" aria-pressed="false"><span aria-hidden="true">☼</span> 配色を切り替える</button>
+      </div>
+    </details>
   </nav>
 
   <main class="workspace">
     <aside class="sidebar" aria-label="レッスン、サンプル、リファレンス">
       <div class="side-tabs" role="tablist">
-        <button id="examplesTab" class="side-tab active" role="tab" aria-selected="true">例</button>
-        <button id="referenceTab" class="side-tab" role="tab" aria-selected="false">関数</button>
-        <button id="lessonTab" class="side-tab lesson-tab" role="tab" aria-selected="false">
+        <button id="examplesTab" class="side-tab active" role="tab" aria-selected="true" aria-controls="examplesPanel" tabindex="0">例</button>
+        <button id="referenceTab" class="side-tab" role="tab" aria-selected="false" aria-controls="referencePanel" tabindex="-1">関数</button>
+        <button id="lessonTab" class="side-tab lesson-tab" role="tab" aria-selected="false" aria-controls="lessonPanel" tabindex="-1">
           ロボット君 <span id="lessonTabProgress" class="count">0/0</span>
         </button>
       </div>
 
-      <section id="examplesPanel" class="side-panel">
+      <section id="examplesPanel" class="side-panel" role="tabpanel" aria-labelledby="examplesTab">
         <label class="search-box">
           <span class="sr-only">コード例を検索</span>
           <input id="exampleSearch" type="search" placeholder="コード例を検索">
@@ -99,7 +124,7 @@
         </div>
       </section>
 
-      <section id="referencePanel" class="side-panel" hidden>
+      <section id="referencePanel" class="side-panel" role="tabpanel" aria-labelledby="referenceTab" hidden>
         <label class="search-box">
           <span class="sr-only">標準関数を検索</span>
           <input id="referenceSearch" type="search" placeholder="標準関数を検索">
@@ -109,9 +134,9 @@
         </div>
       </section>
 
-      <section id="lessonPanel" class="side-panel lesson-panel" hidden>
+      <section id="lessonPanel" class="side-panel lesson-panel" role="tabpanel" aria-labelledby="lessonTab" hidden>
         <div class="tutor-header">
-          <div id="robotAvatar" class="robot-avatar" aria-label="ロボット君">
+          <div id="robotAvatar" class="robot-avatar" role="img" aria-label="ロボット君">
             <span class="robot-antenna"></span>
             <span class="robot-eye left"></span>
             <span class="robot-eye right"></span>
@@ -226,7 +251,7 @@
               <span>進捗</span>
               <strong id="lessonProgressText">0 / 0</strong>
             </div>
-            <div class="progress-track">
+            <div class="progress-track" role="progressbar" aria-label="レッスン進捗" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0">
               <span id="lessonProgressBar"></span>
             </div>
           </div>
@@ -267,6 +292,17 @@
       </section>
     </aside>
 
+    <div
+      id="sidebarResizer"
+      class="workspace-resizer sidebar-resizer"
+      role="separator"
+      aria-label="学習棚の幅を変更"
+      aria-orientation="vertical"
+      aria-valuemin="230"
+      aria-valuemax="420"
+      tabindex="0"
+    ></div>
+
     <section class="editor-column" aria-label="コードエディター">
       <div class="pane-title">
         <span>main.pop</span>
@@ -282,19 +318,39 @@
       </div>
     </section>
 
+    <div
+      id="resultResizer"
+      class="workspace-resizer result-resizer"
+      role="separator"
+      aria-label="結果棚の幅を変更"
+      aria-orientation="vertical"
+      aria-valuemin="280"
+      aria-valuemax="500"
+      tabindex="0"
+    ></div>
+
     <section class="result-column" aria-label="実行結果">
-      <div class="result-tabs" role="tablist">
-        <button class="result-tab active" data-result-tab="output" role="tab" aria-selected="true">出力</button>
-        <button class="result-tab" data-result-tab="diagnostics" role="tab" aria-selected="false">
-          診断 <span id="diagnosticCount" class="count">0</span>
+      <div class="mobile-result-grip">
+        <button id="resultDrawerHandle" type="button" aria-label="結果棚を広げる" aria-expanded="false">
+          <span class="drawer-grip" aria-hidden="true"></span>
+          <span>実行結果</span>
         </button>
-        <button class="result-tab" data-result-tab="ast" role="tab" aria-selected="false">AST</button>
+        <button id="closeResultDrawerButton" type="button" aria-label="結果棚を閉じる">×</button>
+      </div>
+      <div class="result-tabs">
+        <div class="result-tab-list" role="tablist">
+          <button id="outputTab" class="result-tab active" data-result-tab="output" role="tab" aria-selected="true" aria-controls="outputPanel" tabindex="0">出力</button>
+          <button id="diagnosticsTab" class="result-tab" data-result-tab="diagnostics" role="tab" aria-selected="false" aria-controls="diagnosticsPanel" tabindex="-1">
+            診断 <span id="diagnosticCount" class="count">0</span>
+          </button>
+          <button id="astTab" class="result-tab detail-tab" data-result-tab="ast" role="tab" aria-selected="false" aria-controls="astPanel" tabindex="-1">詳細</button>
+        </div>
         <button id="copyResultButton" class="copy-result" type="button">コピー</button>
       </div>
       <div id="resultBody" class="result-body">
-        <pre id="outputPanel" class="result-panel" tabindex="0"><span class="muted">実行結果はここに表示されます。</span></pre>
-        <pre id="diagnosticsPanel" class="result-panel" tabindex="0" hidden>構文上の問題はありません。</pre>
-        <pre id="astPanel" class="result-panel" tabindex="0" hidden>実行後に構文木を表示します。</pre>
+        <pre id="outputPanel" class="result-panel" role="tabpanel" aria-labelledby="outputTab" tabindex="0"><span class="muted">実行結果はここに表示されます。</span></pre>
+        <div id="diagnosticsPanel" class="result-panel diagnostics-panel" role="tabpanel" aria-labelledby="diagnosticsTab" tabindex="0" hidden>構文上の問題はありません。</div>
+        <pre id="astPanel" class="result-panel" role="tabpanel" aria-labelledby="astTab" tabindex="0" hidden>実行後に構文木を表示します。</pre>
         <form id="terminalInputForm" class="terminal-input" hidden>
           <label id="terminalPrompt" for="terminalInput">入力</label>
           <input id="terminalInput" autocomplete="off" spellcheck="false">
@@ -308,6 +364,18 @@
       </footer>
     </section>
   </main>
+
+  <nav class="mobile-dock" aria-label="作業画面">
+    <button class="mobile-pane-button" type="button" data-mobile-pane="learn" aria-pressed="false">
+      <span aria-hidden="true">◧</span><span>学ぶ</span>
+    </button>
+    <button class="mobile-pane-button active" type="button" data-mobile-pane="code" aria-pressed="true">
+      <span aria-hidden="true">⌁</span><span>コード</span>
+    </button>
+    <button class="mobile-pane-button" type="button" data-mobile-pane="result" aria-pressed="false">
+      <span aria-hidden="true">◨</span><span>結果</span>
+    </button>
+  </nav>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 

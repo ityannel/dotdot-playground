@@ -10,6 +10,11 @@
     tutorWelcomed: "poppop.playground.tutorWelcomed.v2",
     tutorProfile: "poppop.playground.tutorProfile.v1",
     tutorLearning: "poppop.playground.tutorLearning.v1",
+    sidebarCollapsed: "poppop.playground.sidebarCollapsed.v1",
+    resultCollapsed: "poppop.playground.resultCollapsed.v1",
+    sidebarWidth: "poppop.playground.sidebarWidth.v1",
+    resultWidth: "poppop.playground.resultWidth.v1",
+    mobileResultHeight: "poppop.playground.mobileResultHeight.v1",
   };
   const FALLBACK_SOURCE = `[1, 2, 3, 4] >> Map(value):
     value * 2.
@@ -28,9 +33,13 @@ doubled >> Display.`;
 
   const elements = Object.fromEntries(
     [
-      "runtimeStatus", "runButton", "stopButton",
+      "runtimeStatus", "appStatus", "runButton", "stopButton",
+      "runFeedback",
       "formatButton", "copyCodeButton", "downloadButton", "fileInput",
-      "shareButton", "decreaseFontButton", "increaseFontButton", "themeButton",
+      "loadFileButton", "shareButton", "decreaseFontButton", "increaseFontButton",
+      "themeButton", "toggleSidebarButton", "toggleResultButton", "moreTools",
+      "sidebarResizer", "resultResizer", "resultDrawerHandle",
+      "closeResultDrawerButton",
       "examplesTab", "referenceTab", "lessonTab", "lessonTabProgress",
       "examplesPanel", "referencePanel", "lessonPanel",
       "exampleSearch", "referenceSearch", "exampleList", "referenceList",
@@ -68,6 +77,17 @@ doubled >> Display.`;
   let runtimeNames = [];
   let currentResultTab = "output";
   let currentSidePanel = "examples";
+  let mobilePane = "code";
+  let sidebarCollapsed = localStorage.getItem(STORAGE.sidebarCollapsed) === "yes";
+  let resultCollapsed = localStorage.getItem(STORAGE.resultCollapsed) === "yes";
+  let sidebarWidth = Number(localStorage.getItem(STORAGE.sidebarWidth)) || 290;
+  let resultWidth = Number(localStorage.getItem(STORAGE.resultWidth)) || 350;
+  let mobileResultHeight =
+    Number(localStorage.getItem(STORAGE.mobileResultHeight)) || 280;
+  let mobileResultOpen = false;
+  let mobileResultExpanded = false;
+  let runFeedbackTimer = null;
+  const compactViewport = window.matchMedia("(max-width: 900px)");
   let lessons = [];
   let lessonIndex = Number(localStorage.getItem(STORAGE.lessonIndex)) || 0;
   let activeLessonId = null;
@@ -241,16 +261,361 @@ doubled >> Display.`;
     return editor ? editor.getValue() : elements.editorFallback.value;
   }
 
-  function setSource(source, markChanged = true) {
+  function setSource(source, options = {}) {
+    const config = typeof options === "boolean"
+      ? { markChanged: options }
+      : options;
+    const markChanged = config.markChanged ?? true;
+    const focus = config.focus ?? true;
     if (editor) {
       editor.setValue(source, -1);
-      editor.focus();
+      if (focus) editor.focus();
     } else {
       elements.editorFallback.value = source;
-      elements.editorFallback.focus();
+      if (focus) elements.editorFallback.focus();
       onSourceChanged();
     }
     if (!markChanged) sourceChanged = false;
+  }
+
+  function announce(message) {
+    if (!elements.appStatus) return;
+    elements.appStatus.textContent = "";
+    requestAnimationFrame(() => {
+      elements.appStatus.textContent = message;
+    });
+  }
+
+  function resizeEditor() {
+    requestAnimationFrame(() => editor?.resize());
+  }
+
+  function clampNumber(value, minimum, maximum) {
+    return Math.min(Math.max(Number(value) || minimum, minimum), maximum);
+  }
+
+  function applyWorkspaceSizes({ persist = false } = {}) {
+    const availableForShelves = Math.max(510, window.innerWidth - 460);
+    sidebarWidth = clampNumber(sidebarWidth, 230, 420);
+    resultWidth = clampNumber(resultWidth, 280, 500);
+    if (sidebarWidth + resultWidth > availableForShelves) {
+      resultWidth = Math.max(280, availableForShelves - sidebarWidth);
+    }
+    if (sidebarWidth + resultWidth > availableForShelves) {
+      sidebarWidth = Math.max(230, availableForShelves - resultWidth);
+    }
+    document.documentElement.style.setProperty("--workspace-sidebar-width", `${sidebarWidth}px`);
+    document.documentElement.style.setProperty("--workspace-result-width", `${resultWidth}px`);
+    elements.sidebarResizer?.setAttribute("aria-valuenow", String(Math.round(sidebarWidth)));
+    elements.resultResizer?.setAttribute("aria-valuenow", String(Math.round(resultWidth)));
+    if (persist) {
+      localStorage.setItem(STORAGE.sidebarWidth, String(Math.round(sidebarWidth)));
+      localStorage.setItem(STORAGE.resultWidth, String(Math.round(resultWidth)));
+    }
+    resizeEditor();
+  }
+
+  function syncLayoutPresetButtons(activePreset = "") {
+    document.querySelectorAll("[data-layout-preset]").forEach((button) => {
+      const active = button.dataset.layoutPreset === activePreset;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+  }
+
+  function applyLayoutPreset(preset) {
+    if (compactViewport.matches) {
+      if (preset === "learn") {
+        closeMobileResultDrawer();
+        switchSidePanel("lesson");
+        setMobilePane("learn");
+      } else if (preset === "try") {
+        setMobilePane("code");
+        openMobileResultDrawer({ expanded: true });
+      } else {
+        closeMobileResultDrawer();
+        setMobilePane("code", { focus: true });
+      }
+      closeToolMenu();
+      return;
+    }
+
+    if (preset === "focus") {
+      setSidebarCollapsed(true);
+      setResultCollapsed(true);
+    } else if (preset === "try") {
+      resultWidth = 390;
+      applyWorkspaceSizes({ persist: true });
+      setSidebarCollapsed(true);
+      setResultCollapsed(false);
+    } else if (preset === "learn") {
+      sidebarWidth = 360;
+      applyWorkspaceSizes({ persist: true });
+      switchSidePanel("lesson");
+      setSidebarCollapsed(false);
+      setResultCollapsed(true);
+    } else {
+      return;
+    }
+    syncLayoutPresetButtons(preset);
+    announce(`「${preset === "focus" ? "集中" : preset === "try" ? "試す" : "学ぶ"}」レイアウトにしました`);
+    closeToolMenu();
+  }
+
+  function setRunFeedback(kind = "", text = "", timeout = 0) {
+    clearTimeout(runFeedbackTimer);
+    document.body.dataset.runFeedback = kind;
+    elements.runFeedback.textContent = text;
+    elements.runFeedback.classList.toggle("visible", Boolean(text));
+    if (timeout > 0) {
+      runFeedbackTimer = setTimeout(() => {
+        document.body.dataset.runFeedback = "";
+        elements.runFeedback.classList.remove("visible");
+        elements.runFeedback.textContent = "";
+      }, timeout);
+    }
+  }
+
+  function setSidebarCollapsed(collapsed, persist = true) {
+    sidebarCollapsed = Boolean(collapsed);
+    document.body.classList.toggle("sidebar-collapsed", sidebarCollapsed);
+    elements.toggleSidebarButton.setAttribute("aria-pressed", String(sidebarCollapsed));
+    elements.toggleSidebarButton.setAttribute(
+      "aria-label",
+      sidebarCollapsed ? "サンプル棚を開く" : "サンプル棚を閉じる",
+    );
+    if (persist) {
+      localStorage.setItem(
+        STORAGE.sidebarCollapsed,
+        sidebarCollapsed ? "yes" : "no",
+      );
+    }
+    syncLayoutPresetButtons();
+    resizeEditor();
+  }
+
+  function setResultCollapsed(collapsed, persist = true) {
+    resultCollapsed = Boolean(collapsed);
+    document.body.classList.toggle("result-collapsed", resultCollapsed);
+    elements.toggleResultButton.setAttribute("aria-pressed", String(resultCollapsed));
+    elements.toggleResultButton.setAttribute(
+      "aria-label",
+      resultCollapsed ? "結果棚を開く" : "結果棚を閉じる",
+    );
+    if (persist) {
+      localStorage.setItem(
+        STORAGE.resultCollapsed,
+        resultCollapsed ? "yes" : "no",
+      );
+    }
+    if (resultCollapsed && compactViewport.matches) closeMobileResultDrawer();
+    syncLayoutPresetButtons();
+    resizeEditor();
+  }
+
+  function updateMobileResultHeight(height, persist = false) {
+    const maximum = Math.max(240, window.innerHeight - 178);
+    mobileResultHeight = clampNumber(height, 150, maximum);
+    document.documentElement.style.setProperty(
+      "--mobile-result-height",
+      `${Math.round(mobileResultHeight)}px`,
+    );
+    if (persist) {
+      localStorage.setItem(STORAGE.mobileResultHeight, String(Math.round(mobileResultHeight)));
+    }
+  }
+
+  function openMobileResultDrawer({ expanded = false } = {}) {
+    if (!compactViewport.matches) return;
+    mobileResultOpen = true;
+    mobileResultExpanded = Boolean(expanded);
+    const targetHeight = expanded
+      ? Math.min(window.innerHeight * 0.68, window.innerHeight - 178)
+      : mobileResultHeight;
+    updateMobileResultHeight(targetHeight);
+    document.body.classList.add("mobile-result-open");
+    document.body.classList.toggle("mobile-result-expanded", mobileResultExpanded);
+    elements.resultDrawerHandle?.setAttribute("aria-expanded", String(mobileResultExpanded));
+    elements.resultDrawerHandle?.setAttribute(
+      "aria-label",
+      mobileResultExpanded ? "結果棚を小さくする" : "結果棚を広げる",
+    );
+    applyMobilePaneState();
+  }
+
+  function closeMobileResultDrawer({ focusCode = false } = {}) {
+    mobileResultOpen = false;
+    mobileResultExpanded = false;
+    document.body.classList.remove("mobile-result-open", "mobile-result-expanded");
+    elements.resultDrawerHandle?.setAttribute("aria-expanded", "false");
+    elements.resultDrawerHandle?.setAttribute("aria-label", "結果棚を広げる");
+    applyMobilePaneState({ focus: focusCode });
+  }
+
+  function revealResult({ input = false } = {}) {
+    setResultCollapsed(false, false);
+    if (compactViewport.matches) {
+      if (mobilePane === "result") mobilePane = "code";
+      openMobileResultDrawer({ expanded: input });
+    } else {
+      setMobilePane("result");
+    }
+  }
+
+  function applyMobilePaneState({ focus = false } = {}) {
+    document.body.dataset.mobilePane = mobilePane;
+    document.querySelectorAll(".mobile-pane-button").forEach((button) => {
+      const pane = button.dataset.mobilePane;
+      const selected = pane === "result"
+        ? mobileResultOpen || mobilePane === "result"
+        : pane === mobilePane && !mobileResultOpen;
+      button.classList.toggle("active", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+
+    const compact = compactViewport.matches;
+    const panes = {
+      learn: document.querySelector(".sidebar"),
+      code: document.querySelector(".editor-column"),
+      result: document.querySelector(".result-column"),
+    };
+    Object.entries(panes).forEach(([name, pane]) => {
+      if (!pane) return;
+      const drawerPane = compact && mobileResultOpen && name === "result";
+      const inactive = compact && name !== mobilePane && !drawerPane;
+      pane.inert = inactive;
+      if (compact) pane.setAttribute("aria-hidden", String(inactive));
+      else pane.removeAttribute("aria-hidden");
+    });
+    if (mobilePane === "code") {
+      resizeEditor();
+      if (focus && compact) requestAnimationFrame(() => editor?.focus());
+    }
+  }
+
+  function setMobilePane(pane, options = {}) {
+    if (!["learn", "code", "result"].includes(pane)) return;
+    if (pane !== "result") closeMobileResultDrawer();
+    mobilePane = pane;
+    applyMobilePaneState(options);
+  }
+
+  function bindWorkspaceResizer(handle, side) {
+    if (!handle) return;
+    let startX = 0;
+    let startSize = 0;
+    let activePointerId = null;
+
+    const updateSize = (nextSize, persist = false) => {
+      if (side === "sidebar") sidebarWidth = nextSize;
+      else resultWidth = nextSize;
+      syncLayoutPresetButtons();
+      applyWorkspaceSizes({ persist });
+    };
+
+    handle.addEventListener("pointerdown", (event) => {
+      if (window.innerWidth <= 1080) return;
+      startX = event.clientX;
+      startSize = side === "sidebar" ? sidebarWidth : resultWidth;
+      activePointerId = event.pointerId;
+      handle.setPointerCapture?.(event.pointerId);
+      document.body.classList.add("is-resizing-workspace");
+    });
+    handle.addEventListener("pointermove", (event) => {
+      if (activePointerId !== event.pointerId) return;
+      const delta = event.clientX - startX;
+      updateSize(startSize + (side === "sidebar" ? delta : -delta));
+    });
+    const finishResize = (event) => {
+      if (activePointerId !== event.pointerId) return;
+      if (handle.hasPointerCapture?.(event.pointerId)) {
+        handle.releasePointerCapture?.(event.pointerId);
+      }
+      activePointerId = null;
+      document.body.classList.remove("is-resizing-workspace");
+      applyWorkspaceSizes({ persist: true });
+    };
+    handle.addEventListener("pointerup", finishResize);
+    handle.addEventListener("pointercancel", finishResize);
+    handle.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home"].includes(event.key)) return;
+      event.preventDefault();
+      const defaultSize = side === "sidebar" ? 290 : 350;
+      const direction = side === "sidebar" ? 1 : -1;
+      const step = event.shiftKey ? 48 : 16;
+      const current = side === "sidebar" ? sidebarWidth : resultWidth;
+      const next = event.key === "Home"
+        ? defaultSize
+        : current + (event.key === "ArrowRight" ? step : -step) * direction;
+      updateSize(next, true);
+    });
+  }
+
+  function bindMobileResultDrawer() {
+    if (!elements.resultDrawerHandle) return;
+    let startY = 0;
+    let startHeight = 0;
+    let latestRawHeight = 0;
+    let moved = false;
+    let suppressClick = false;
+    let activePointerId = null;
+
+    elements.resultDrawerHandle.addEventListener("pointerdown", (event) => {
+      if (!compactViewport.matches || !mobileResultOpen) return;
+      startY = event.clientY;
+      startHeight = mobileResultHeight;
+      latestRawHeight = startHeight;
+      moved = false;
+      activePointerId = event.pointerId;
+      elements.resultDrawerHandle.setPointerCapture?.(event.pointerId);
+      document.body.classList.add("is-resizing-result");
+    });
+    elements.resultDrawerHandle.addEventListener("pointermove", (event) => {
+      if (activePointerId !== event.pointerId) return;
+      latestRawHeight = startHeight + startY - event.clientY;
+      if (Math.abs(event.clientY - startY) > 4) moved = true;
+      updateMobileResultHeight(latestRawHeight);
+    });
+    const finishDrawerResize = (event) => {
+      if (activePointerId !== event.pointerId) return;
+      if (elements.resultDrawerHandle.hasPointerCapture?.(event.pointerId)) {
+        elements.resultDrawerHandle.releasePointerCapture?.(event.pointerId);
+      }
+      activePointerId = null;
+      document.body.classList.remove("is-resizing-result");
+      if (moved) {
+        suppressClick = true;
+        if (latestRawHeight < 120) {
+          closeMobileResultDrawer({ focusCode: true });
+          return;
+        }
+        mobileResultExpanded = mobileResultHeight > window.innerHeight * 0.54;
+        document.body.classList.toggle("mobile-result-expanded", mobileResultExpanded);
+        elements.resultDrawerHandle.setAttribute(
+          "aria-expanded",
+          String(mobileResultExpanded),
+        );
+        localStorage.setItem(
+          STORAGE.mobileResultHeight,
+          String(Math.round(mobileResultHeight)),
+        );
+      }
+    };
+    elements.resultDrawerHandle.addEventListener("pointerup", finishDrawerResize);
+    elements.resultDrawerHandle.addEventListener("pointercancel", finishDrawerResize);
+    elements.resultDrawerHandle.addEventListener("click", () => {
+      if (suppressClick) {
+        suppressClick = false;
+        return;
+      }
+      openMobileResultDrawer({ expanded: !mobileResultExpanded });
+    });
+    elements.closeResultDrawerButton?.addEventListener("click", () =>
+      closeMobileResultDrawer({ focusCode: true }));
+  }
+
+  function closeToolMenu() {
+    if (elements.moreTools) elements.moreTools.open = false;
   }
 
   function updateEditorStatus() {
@@ -294,6 +659,7 @@ doubled >> Display.`;
   function setRuntimeStatus(kind, text) {
     elements.runtimeStatus.dataset.runtimeState = kind;
     elements.runtimeStatus.title = text;
+    if (kind !== "loading") announce(text);
   }
 
   function createWorker() {
@@ -316,6 +682,7 @@ doubled >> Display.`;
       runtimeReady = true;
       elements.runButton.disabled = false;
       setRuntimeStatus("ready", "現行 Python 実装に接続済み");
+      setRunFeedback("ready", "準備完了", 1200);
       runtimeNames = [...new Set([
         ...(message.builtins ?? []),
         ...(message.specialForms ?? []),
@@ -339,6 +706,7 @@ doubled >> Display.`;
     }
     if (message.type === "boot-error") {
       setRuntimeStatus("error", "実行環境の読み込みに失敗");
+      setRunFeedback("error", "準備できませんでした", 2600);
       showDiagnostics([message.message]);
       return;
     }
@@ -351,8 +719,10 @@ doubled >> Display.`;
       elements.terminalPrompt.textContent = message.prompt || "入力";
       elements.terminalInputForm.hidden = false;
       elements.resultBody.classList.add("input-active");
+      setRunFeedback("waiting", "入力待ち");
+      revealResult({ input: true });
       selectResultTab("output");
-      elements.terminalInput.focus();
+      requestAnimationFrame(() => elements.terminalInput.focus());
       return;
     }
     if (message.type === "analysis" && message.requestId === latestAnalysis) {
@@ -390,6 +760,7 @@ doubled >> Display.`;
       showDiagnostics(message.ok ? [] : [message.error]);
       if (message.ok) {
         elements.runState.textContent = "完了";
+        setRunFeedback("success", "できました", 1800);
         if (message.lesson) handleLessonResult(message.lesson);
         else if (
           currentLesson()?.dynamic &&
@@ -401,6 +772,7 @@ doubled >> Display.`;
       } else {
         appendOutput(localizeError(message.error), true);
         elements.runState.textContent = "エラー";
+        setRunFeedback("error", "確認が必要です", 2600);
         selectResultTab("diagnostics");
         if (activeLessonId && currentSidePanel === "lesson") {
           recordLearning("failure", activeLessonId, localizeError(message.error));
@@ -411,6 +783,7 @@ doubled >> Display.`;
         }
       }
       elements.runTime.textContent = `${message.elapsedMs ?? 0} ms`;
+      announce(message.ok ? "実行が完了しました" : "実行でエラーが見つかりました");
       finishRun();
     }
   }
@@ -437,6 +810,7 @@ doubled >> Display.`;
   function startRun() {
     if (!runtimeReady || running) return;
     running = true;
+    document.body.classList.add("is-running");
     sourceChanged = false;
     clearTimeout(analysisTimer);
     elements.runButton.disabled = true;
@@ -445,10 +819,13 @@ doubled >> Display.`;
     elements.outputPanel.textContent = "";
     elements.runState.textContent = "実行中";
     elements.runTime.textContent = "計測中…";
+    setRunFeedback("running", "実行中…");
     if (activeLessonId && currentSidePanel === "lesson") {
       setRobotMood("thinking");
     }
+    revealResult();
     selectResultTab("output");
+    announce("実行を開始しました");
     elements.checkLessonButton.disabled = true;
     worker.postMessage({
       type: "run",
@@ -470,6 +847,7 @@ doubled >> Display.`;
     appendOutput("実行を停止しました。", true);
     elements.runState.textContent = "停止";
     elements.runTime.textContent = "— ms";
+    setRunFeedback("stopped", "停止しました", 1800);
     setRobotMood("encourage", 1800);
     finishRun();
     createWorker();
@@ -477,6 +855,7 @@ doubled >> Display.`;
 
   function finishRun() {
     running = false;
+    document.body.classList.remove("is-running");
     elements.stopButton.disabled = true;
     elements.runButton.disabled = !runtimeReady;
     elements.checkLessonButton.disabled =
@@ -520,13 +899,54 @@ doubled >> Display.`;
     elements.outputPanel.scrollTop = elements.outputPanel.scrollHeight;
   }
 
+  function goToSourceLine(line) {
+    const targetLine = Math.max(1, Number(line) || 1);
+    if (compactViewport.matches) {
+      closeMobileResultDrawer();
+      setMobilePane("code");
+    }
+    requestAnimationFrame(() => {
+      if (editor) {
+        editor.gotoLine(targetLine, 0, true);
+        editor.focus();
+        return;
+      }
+      const lines = elements.editorFallback.value.split("\n");
+      const offset = lines.slice(0, targetLine - 1)
+        .reduce((total, value) => total + value.length + 1, 0);
+      elements.editorFallback.focus();
+      elements.editorFallback.setSelectionRange(offset, offset);
+    });
+  }
+
   function showDiagnostics(diagnostics) {
     const items = (diagnostics ?? []).filter(Boolean);
     const localizedItems = items.map(localizeError);
     elements.diagnosticCount.textContent = String(items.length);
-    elements.diagnosticsPanel.textContent = items.length
-      ? localizedItems.map((item, index) => `${index + 1}. ${item}`).join("\n\n")
-      : "構文上の問題はありません。";
+    elements.diagnosticsPanel.replaceChildren();
+    if (!items.length) {
+      elements.diagnosticsPanel.textContent = "構文上の問題はありません。";
+    } else {
+      items.forEach((item, index) => {
+        const line = Math.max(
+          1,
+          Number(window.PopPopLocalization?.errorLine(item) ?? 1),
+        );
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "diagnostic-item";
+        button.setAttribute("aria-label", `${line}行目へ移動: ${localizedItems[index]}`);
+        const location = document.createElement("span");
+        location.className = "diagnostic-location";
+        location.textContent = `${line}行目`;
+        const description = document.createElement("span");
+        description.className = "diagnostic-message";
+        description.textContent = localizedItems[index];
+        button.append(location, description);
+        button.addEventListener("click", () => goToSourceLine(line));
+        elements.diagnosticsPanel.append(button);
+      });
+    }
     elements.diagnosticsPanel.classList.toggle("error", items.length > 0);
     if (editor) {
       editor.session.setAnnotations(items.map((item, index) => {
@@ -558,6 +978,7 @@ doubled >> Display.`;
       const selected = button.dataset.resultTab === name;
       button.classList.toggle("active", selected);
       button.setAttribute("aria-selected", String(selected));
+      button.tabIndex = selected ? 0 : -1;
     });
     elements.outputPanel.hidden = name !== "output";
     elements.diagnosticsPanel.hidden = name !== "diagnostics";
@@ -569,12 +990,19 @@ doubled >> Display.`;
     const foundExamples = [];
     const foundReferences = [];
     let heading = "基本";
+    let inStandardFunctionSection = false;
     let inCode = false;
     let codeLines = [];
 
     for (const line of lines) {
-      const headingMatch = line.match(/^#{2,4}\s+(.+)$/);
-      if (!inCode && headingMatch) heading = headingMatch[1].trim();
+      const headingMatch = line.match(/^(#{2,4})\s+(.+)$/);
+      if (!inCode && headingMatch) {
+        heading = headingMatch[2].trim();
+        if (headingMatch[1].length <= 3) {
+          inStandardFunctionSection =
+            heading.replace(/^\d+\.\s*/, "") === "標準関数一覧";
+        }
+      }
       if (line.trim() === "```poppop") {
         inCode = true;
         codeLines = [];
@@ -589,7 +1017,11 @@ doubled >> Display.`;
       if (inCode) codeLines.push(line);
 
       const cells = line.split("|").slice(1, -1).map((cell) => cell.trim());
-      if (cells.length === 4 && /^`[^`]+`$/.test(cells[1])) {
+      if (
+        inStandardFunctionSection &&
+        cells.length === 4 &&
+        /^`[^`]+`$/.test(cells[1])
+      ) {
         foundReferences.push({
           category: cells[0],
           name: cells[1].slice(1, -1),
@@ -675,6 +1107,7 @@ doubled >> Display.`;
     elements.exampleList.querySelectorAll("[data-example-index]").forEach((button) => {
       button.addEventListener("click", () => {
         const item = examples[Number(button.dataset.exampleIndex)];
+        setMobilePane("code");
         setSource(item.code);
         showToast(item.interactive
           ? `「${item.title}」を読み込みました。実行すると入力欄が開きます`
@@ -711,6 +1144,7 @@ doubled >> Display.`;
       const selected = name === panel;
       tab.classList.toggle("active", selected);
       tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
       content.hidden = !selected;
     });
     document.body.classList.toggle("lesson-open", panel === "lesson");
@@ -739,6 +1173,9 @@ doubled >> Display.`;
     elements.lessonTabProgress.textContent =
       complete >= total && aiComplete ? `AI ${aiComplete}` : `${complete}/${total}`;
     elements.lessonProgressBar.style.width = `${percent}%`;
+    const progress = elements.lessonProgressBar.parentElement;
+    progress?.setAttribute("aria-valuemax", String(total || 0));
+    progress?.setAttribute("aria-valuenow", String(complete));
   }
 
   function renderTutorShell() {
@@ -1074,7 +1511,7 @@ doubled >> Display.`;
     clearLessonChat();
     setTutorBusy(false);
     setRobotMood("neutral");
-    if (lessons[0]) setSource(lessons[0].starter);
+    if (lessons[0]) setSource(lessons[0].starter, { focus: false });
     renderLesson();
     showToast("進捗とAI設定をリセットしました");
   }
@@ -1085,7 +1522,7 @@ doubled >> Display.`;
     activeLessonId = lesson.id;
     hintIndex = 0;
     setRobotMood("neutral");
-    setSource(lesson.starter);
+    setSource(lesson.starter, { focus: false });
     renderLesson();
     renderTutorConversation();
     if (introduction) {
@@ -1149,7 +1586,7 @@ doubled >> Display.`;
     try {
       const tuned = await request;
       if (tuned && activeLessonId === baseLesson.id && !aiLesson) {
-        setSource(tuned.starter);
+        setSource(tuned.starter, { focus: false });
         renderLesson();
         setRobotMood(tuned.mood, 2800);
         robotSpeak(tuned.intro);
@@ -1303,6 +1740,7 @@ doubled >> Display.`;
     const lesson = currentLesson();
     if (!lesson || activeLessonId !== lesson.id) return;
     recordLearning("answer", lesson.id, "完成例を表示");
+    setMobilePane("code");
     setSource(lesson.solution);
     await askRobot("answer_revealed", {
       fallback: "答えを表示したよ。実行して、値の流れを一緒に確かめよう。",
@@ -1312,6 +1750,7 @@ doubled >> Display.`;
   async function handleLessonResult(validation) {
     const lesson = currentLesson();
     if (!lesson || activeLessonId !== lesson.id) return;
+    setMobilePane("learn");
     if (validation.passed) {
       recordLearning("success", lesson.id, validation.message);
       completedLessons.add(lesson.id);
@@ -1581,6 +2020,7 @@ doubled >> Display.`;
   async function evaluateAiLesson(result) {
     const lesson = currentLesson();
     if (!lesson?.dynamic) return;
+    setMobilePane("learn");
     const requestId = ++tutorRequestSequence;
     setRobotMood("thinking");
     setTutorBusy(true);
@@ -1775,7 +2215,7 @@ doubled >> Display.`;
           const generated = await generateOpenEndedLesson(
             attempt > 0 ? String(lastError?.message || "") : "",
             (partialStarter) => {
-              setSource(partialStarter, false);
+              setSource(partialStarter, { markChanged: false, focus: false });
             },
           );
           data = generated.data;
@@ -1801,7 +2241,7 @@ doubled >> Display.`;
       };
       activeLessonId = aiLesson.id;
       hintIndex = 0;
-      setSource(aiLesson.starter);
+      setSource(aiLesson.starter, { focus: false });
       renderLesson();
       renderTutorConversation();
       await askRobot("ai_lesson_created", {
@@ -1815,7 +2255,7 @@ doubled >> Display.`;
       });
     } catch (error) {
       console.warn("AI lesson generation failed", error);
-      setSource(sourceBeforeGeneration, false);
+      setSource(sourceBeforeGeneration, { markChanged: false, focus: false });
       setRobotMood("encourage", 1800);
       robotSpeak(aiLessonFailureMessage(error));
       renderLesson();
@@ -2076,7 +2516,9 @@ doubled >> Display.`;
     const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
     document.documentElement.dataset.theme = next;
     localStorage.setItem(STORAGE.theme, next);
+    elements.themeButton.setAttribute("aria-pressed", String(next === "light"));
     updateAceTheme();
+    closeToolMenu();
   }
 
   function showToast(message) {
@@ -2086,6 +2528,24 @@ doubled >> Display.`;
     toastTimer = setTimeout(() => elements.toast.classList.remove("visible"), 2300);
   }
 
+  function bindTabKeyboard(tablist, selector, activate) {
+    if (!tablist) return;
+    tablist.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      const tabs = [...tablist.querySelectorAll(selector)];
+      if (!tabs.length) return;
+      const current = Math.max(0, tabs.indexOf(document.activeElement));
+      const nextIndex = event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? tabs.length - 1
+          : (current + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+      event.preventDefault();
+      tabs[nextIndex].focus();
+      activate(tabs[nextIndex]);
+    });
+  }
+
   function bindEvents() {
     elements.runButton.addEventListener("click", startRun);
     elements.stopButton.addEventListener("click", stopRun);
@@ -2093,11 +2553,61 @@ doubled >> Display.`;
     elements.copyCodeButton.addEventListener("click", () =>
       copyText(getSource(), "コードをコピーしました"));
     elements.downloadButton.addEventListener("click", downloadSource);
+    elements.loadFileButton.addEventListener("click", () => elements.fileInput.click());
     elements.fileInput.addEventListener("change", () => loadFile(elements.fileInput.files[0]));
     elements.shareButton.addEventListener("click", shareSource);
     elements.decreaseFontButton.addEventListener("click", () => changeFont(-1));
     elements.increaseFontButton.addEventListener("click", () => changeFont(1));
     elements.themeButton.addEventListener("click", toggleTheme);
+    elements.toggleSidebarButton.addEventListener("click", () =>
+      setSidebarCollapsed(!sidebarCollapsed));
+    elements.toggleResultButton.addEventListener("click", () =>
+      setResultCollapsed(!resultCollapsed));
+    document.querySelectorAll("[data-layout-preset]").forEach((button) => {
+      button.addEventListener("click", () =>
+        applyLayoutPreset(button.dataset.layoutPreset));
+    });
+    document.querySelectorAll(".mobile-pane-button").forEach((button) => {
+      button.addEventListener("click", () => {
+        const pane = button.dataset.mobilePane;
+        if (pane === "result") {
+          if (mobileResultOpen) closeMobileResultDrawer({ focusCode: true });
+          else revealResult();
+          return;
+        }
+        setMobilePane(pane, { focus: pane === "code" });
+      });
+    });
+    compactViewport.addEventListener("change", () => {
+      if (compactViewport.matches && mobilePane === "result") {
+        mobilePane = "code";
+        openMobileResultDrawer();
+      } else if (!compactViewport.matches) {
+        closeMobileResultDrawer();
+      }
+      updateMobileResultHeight(mobileResultHeight);
+      applyWorkspaceSizes();
+      applyMobilePaneState();
+    });
+    window.addEventListener("resize", () => {
+      applyWorkspaceSizes();
+      updateMobileResultHeight(mobileResultHeight);
+    });
+    bindWorkspaceResizer(elements.sidebarResizer, "sidebar");
+    bindWorkspaceResizer(elements.resultResizer, "result");
+    bindMobileResultDrawer();
+    elements.moreTools.querySelectorAll("button").forEach((button) => {
+      if (button === elements.themeButton || button === elements.loadFileButton) return;
+      button.addEventListener("click", closeToolMenu);
+    });
+    document.addEventListener("pointerdown", (event) => {
+      if (
+        elements.moreTools.open &&
+        !elements.moreTools.contains(event.target)
+      ) {
+        closeToolMenu();
+      }
+    });
     document.addEventListener("keydown", (event) => {
       if (event.shiftKey && event.altKey && event.key.toLowerCase() === "f") {
         event.preventDefault();
@@ -2146,17 +2656,39 @@ doubled >> Display.`;
       const value = elements.terminalInput.value;
       appendOutput(`${elements.terminalPrompt.textContent}${value}`);
       worker.postMessage({ type: "input-result", id: currentInputId, value });
+      setRunFeedback("running", "実行中…");
       currentInputId = null;
       elements.terminalInput.value = "";
       elements.terminalInputForm.hidden = true;
       elements.resultBody.classList.remove("input-active");
     });
+    bindTabKeyboard(
+      document.querySelector(".side-tabs"),
+      ".side-tab",
+      (tab) => {
+        if (tab === elements.examplesTab) switchSidePanel("examples");
+        if (tab === elements.referenceTab) switchSidePanel("reference");
+        if (tab === elements.lessonTab) switchSidePanel("lesson");
+      },
+    );
+    bindTabKeyboard(
+      document.querySelector(".result-tab-list"),
+      ".result-tab",
+      (tab) => selectResultTab(tab.dataset.resultTab),
+    );
     document.addEventListener("keydown", (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
         event.preventDefault();
         startRun();
       }
       if (event.key === "Escape" && running) stopRun();
+      else if (event.key === "Escape" && mobileResultOpen) {
+        closeMobileResultDrawer({ focusCode: true });
+      }
+      else if (event.key === "Escape" && elements.moreTools.open) {
+        elements.moreTools.open = false;
+        elements.moreTools.querySelector("summary")?.focus();
+      }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
         downloadSource();
@@ -2168,6 +2700,15 @@ doubled >> Display.`;
     localStorage.getItem(STORAGE.theme) === "light" ? "light" : "dark";
   setupEditor();
   bindEvents();
+  applyWorkspaceSizes();
+  updateMobileResultHeight(mobileResultHeight);
+  elements.themeButton.setAttribute(
+    "aria-pressed",
+    String(document.documentElement.dataset.theme === "light"),
+  );
+  setSidebarCollapsed(sidebarCollapsed, false);
+  setResultCollapsed(resultCollapsed, false);
+  setMobilePane("code");
   updateEditorStatus();
   loadSpecification();
   createWorker();
